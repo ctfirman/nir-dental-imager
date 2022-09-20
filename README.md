@@ -3,7 +3,7 @@ NE Capstone Project
 
 How to run:
 ```
-virtualenv venv
+virtualenv venv (first time only)
 source venv/bin/activate
 
 pip install -r requirements.txt
