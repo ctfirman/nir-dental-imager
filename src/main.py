@@ -1,8 +1,3 @@
-"""
-Main entry point
-"""
-
-
 def main():
     return "Hello World!"
 
