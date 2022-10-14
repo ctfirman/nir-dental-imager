@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,18 +26,18 @@ def crack_detect_method_1(img_src: str) -> None:
     # cv2.imshow("gray", gray)
 
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    cv2.imshow("blur", blur)
+    # cv2.imshow("blur", blur)
 
     # Apply logarithmic transform
     img_log = (np.log(blur + 1) / (np.log(1 + np.max(blur)))) * 255
 
     # Specify the data type
     img_log = np.array(img_log, dtype=np.uint8)
-    cv2.imshow("img_log", img_log)
+    # cv2.imshow("img_log", img_log)
 
     # Image smoothing: bilateral filter
     bilateral = cv2.bilateralFilter(img_log, 5, 25, 25)
-    cv2.imshow("bilateral", bilateral)
+    # cv2.imshow("bilateral", bilateral)
 
     # ret, binary = cv2.threshold(
     #     bilateral, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
@@ -46,8 +48,8 @@ def crack_detect_method_1(img_src: str) -> None:
     # max value will be half of max - min from bilateral
 
     # TODO: Figure out why bilateral image won't work
-    edges = cv2.Canny(gray, 100, 200)
-    cv2.imshow("edges", edges)
+    edges = cv2.Canny(blur, 100, 150)
+    # cv2.imshow("edges", edges)
 
     # Morphological Closing Operator
     kernel = np.ones((5, 5), np.uint8)
@@ -61,13 +63,19 @@ def crack_detect_method_1(img_src: str) -> None:
 
     # Make featured Image
     keypoints, descriptors = orb.detectAndCompute(closing, None)
-    featuredImg = cv2.drawKeypoints(closing, keypoints, None)
-    # cv2.imshow("result", featuredImg)
+    result = cv2.drawKeypoints(closing, keypoints, None)
+    # cv2.imshow("result", result)
+
+    img_file_name = os.path.basename(img_src)
+    final_img_path = os.path.abspath(f"test-images/concrete/completed/{img_file_name}")
+    cv2.imwrite(final_img_path, result)
+
+    return src, result
 
     # Use plot to show original and output image
     plt.subplot(121), plt.imshow(src)
     plt.title("Original"), plt.xticks([]), plt.yticks([])
-    plt.subplot(122), plt.imshow(featuredImg, cmap="gray")
+    plt.subplot(122), plt.imshow(result, cmap="gray")
     plt.title("Output Image"), plt.xticks([]), plt.yticks([])
     plt.show()
 
