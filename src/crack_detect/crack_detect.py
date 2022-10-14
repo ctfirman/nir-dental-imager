@@ -36,7 +36,7 @@ def crack_detect_method_1(img_src: str) -> None:
     # cv2.imshow("img_log", img_log)
 
     # Image smoothing: bilateral filter
-    bilateral = cv2.bilateralFilter(img_log, 5, 25, 25)
+    bilateral = cv2.bilateralFilter(img_log, 5, 10, 10)
     # cv2.imshow("bilateral", bilateral)
 
     # ret, binary = cv2.threshold(
@@ -48,7 +48,8 @@ def crack_detect_method_1(img_src: str) -> None:
     # max value will be half of max - min from bilateral
 
     # TODO: Figure out why bilateral image won't work
-    edges = cv2.Canny(blur, 100, 150)
+    # edges = cv2.Canny(blur, 100, 150)
+    edges = cv2.Canny(bilateral, 25, 50)
     # cv2.imshow("edges", edges)
 
     # Morphological Closing Operator
@@ -68,16 +69,8 @@ def crack_detect_method_1(img_src: str) -> None:
 
     img_file_name = os.path.basename(img_src)
     final_img_path = os.path.abspath(f"test-images/concrete/completed/{img_file_name}")
-    cv2.imwrite(final_img_path, result)
-
-    return src, result
-
-    # Use plot to show original and output image
-    plt.subplot(121), plt.imshow(src)
-    plt.title("Original"), plt.xticks([]), plt.yticks([])
-    plt.subplot(122), plt.imshow(result, cmap="gray")
-    plt.title("Output Image"), plt.xticks([]), plt.yticks([])
-    plt.show()
-
+    # cv2.imwrite(final_img_path, result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+    return src, result
