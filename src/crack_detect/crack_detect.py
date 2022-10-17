@@ -70,7 +70,7 @@ def crack_detect_method_1(img_src: str) -> None:
     img_file_name = os.path.basename(img_src)
     final_img_path = os.path.abspath(f"test-images/concrete/completed/{img_file_name}")
     # cv2.imwrite(final_img_path, result)
-    cv2.waitKey(0)
+    # cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     return src, result
