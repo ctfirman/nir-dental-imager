@@ -3,7 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 
-from crack_detect.crack_detect import crack_detect_method_1
+from img_processing.crack_detect import crack_detect_method_1
 
 
 def main():
