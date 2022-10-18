@@ -1,6 +1,4 @@
 import sys
-from tabnanny import check
-import typing
 
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton
