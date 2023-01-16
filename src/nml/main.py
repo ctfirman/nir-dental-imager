@@ -3,16 +3,21 @@ import os
 
 import matplotlib.pyplot as plt
 
-from img_processing.crack_detect import crack_detect_method_1
+from src.nml.img_processing.crack_detect import crack_detect_method_1
+from src.nml.camera_utils.camera import main_video_stream
 
 
 def main():
     return "Hello World!"
 
 
-if __name__ == "__main__":
-    print(main())
+def main_camera():
+    print("Running main camera stream")
+    main_video_stream()
+    print("Done")
 
+
+def main_image_proc():
     save_img = "save-img" in sys.argv
     img_paths = [
         os.path.abspath(f"test-images/concrete/original/positive0{i}.jpg")
@@ -33,3 +38,9 @@ if __name__ == "__main__":
         axes[count, 1].set_xticks([]), axes[count, 1].set_yticks([])
 
     plt.show()
+
+
+if __name__ == "__main__":
+    print(main())
+
+    main_camera()

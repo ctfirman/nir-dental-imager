@@ -2,7 +2,7 @@
 Testing main.py
 """
 
-from src import main
+from src.nml import main
 
 
 def test_main():
