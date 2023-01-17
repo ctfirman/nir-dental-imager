@@ -23,7 +23,7 @@ def main_video_stream() -> None:
     video_writer = cv2.VideoWriter(
         os.path.abspath("tmp_vid/test.avi"),
         cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-        10,
+        30,
         (frame_width, frame_hight),
     )
 
