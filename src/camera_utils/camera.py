@@ -1,3 +1,4 @@
+import os
 import cv2
 
 
@@ -15,9 +16,9 @@ def main_video_stream() -> None:
     # video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     while True:
-        ret, frame = video.read()
-        # if frame is read correctly ret is True
-        if not ret:
+        success, frame = video.read()
+        # if frame is read correctly success is True
+        if not success:
             print("Can't receive frame. Exiting ...")
             break
 
@@ -26,12 +27,22 @@ def main_video_stream() -> None:
         # Display the resulting frame
         cv2.imshow("NML", gray)
 
+        key_press = cv2.waitKey(1) & 0xFF
         # "q" will break out of the video
-        if cv2.waitKey(1) == ord("q"):
+        # "c" will capture a image from the video
+        if key_press == ord("q"):
             break
+        elif key_press == ord("c"):
+            save_image(frame)
 
     print("Cleaning Up!")
     video_close(video=video)
+
+
+def save_image(video_frame: cv2.Mat) -> None:
+    print("Capturing Image")
+    img_path = os.path.abspath("tmp_img/test.jpg")
+    cv2.imwrite(img_path, video_frame)
 
 
 def video_close(video: cv2.VideoCapture) -> None:

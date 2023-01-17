@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, Mock, ANY
 
-from src.camera_utils import camera
+from src.camera_utils.camera import main_video_stream, save_image, video_close
 
 mocked_video_not_opened = Mock()
 mocked_video_not_opened.isOpened.return_value = False
@@ -17,7 +17,7 @@ def test_main_video_stream_not_opened(
     VideoCapture_mock, cvtColor_mock, imshow_mock, waitKey_mock, video_close_mock
 ):
     with pytest.raises(Exception) as e_info:
-        camera.main_video_stream()
+        main_video_stream()
 
     VideoCapture_mock.assert_called_once_with(0)
     video_close_mock.assert_called_once_with(video=mocked_video_not_opened)
@@ -43,7 +43,7 @@ mocked_video_no_read.read.return_value = (False, None)
 def test_main_video_stream_no_read(
     VideoCapture_mock, cvtColor_mock, imshow_mock, waitKey_mock, video_close_mock
 ):
-    camera.main_video_stream()
+    main_video_stream()
 
     VideoCapture_mock.assert_called_once_with(0)
     video_close_mock.assert_called_once_with(video=mocked_video_no_read)
@@ -68,7 +68,7 @@ mocked_video_valid.read.return_value = (True, None)
 def test_main_video_stream_valid(
     VideoCapture_mock, cvtColor_mock, imshow_mock, waitKey_mock, video_close_mock
 ):
-    camera.main_video_stream()
+    main_video_stream()
 
     mocked_video_valid.isOpened.assert_called_once()
     mocked_video_valid.read.assert_called_once()
@@ -80,12 +80,22 @@ def test_main_video_stream_valid(
     waitKey_mock.assert_called_once_with(1)
 
 
+@patch("os.path.abspath", return_value="test/path/img.jpg")
+@patch("cv2.imwrite")
+def test_save_image(imwrite_mock, os_path_mock):
+    frame_mock = Mock()
+    save_image(frame_mock)
+
+    os_path_mock.assert_called_once_with("tmp_img/test.jpg")
+    imwrite_mock.assert_called_once_with("test/path/img.jpg", frame_mock)
+
+
 @patch("cv2.destroyAllWindows")
 def test_video_close(destroy_all_windows_patch):
     video_mock = Mock()
     video_mock.release
 
-    camera.video_close(video_mock)
+    video_close(video_mock)
 
     video_mock.release.assert_called_once_with()
     destroy_all_windows_patch.assert_called_once_with()
