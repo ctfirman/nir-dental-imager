@@ -1,14 +1,14 @@
 import pytest
 from unittest.mock import patch, Mock, ANY
 
-from src.nml.camera_utils import camera
+from src.camera_utils import camera
 
 mocked_video_not_opened = Mock()
 mocked_video_not_opened.isOpened.return_value = False
 mocked_video_not_opened.read.return_value = (False, None)
 
 
-@patch("src.nml.camera_utils.camera.video_close")
+@patch("src.camera_utils.camera.video_close")
 @patch("cv2.waitKey", return_value=ord("q"))
 @patch("cv2.imshow", return_value=())
 @patch("cv2.cvtColor", return_value="Frame")
@@ -35,7 +35,7 @@ mocked_video_no_read.isOpened.return_value = True
 mocked_video_no_read.read.return_value = (False, None)
 
 
-@patch("src.nml.camera_utils.camera.video_close")
+@patch("src.camera_utils.camera.video_close")
 @patch("cv2.waitKey", return_value=ord("q"))
 @patch("cv2.imshow", return_value=())
 @patch("cv2.cvtColor", return_value="Frame")
@@ -60,7 +60,7 @@ mocked_video_valid.isOpened.return_value = True
 mocked_video_valid.read.return_value = (True, None)
 
 
-@patch("src.nml.camera_utils.camera.video_close")
+@patch("src.camera_utils.camera.video_close")
 @patch("cv2.waitKey", return_value=ord("q"))
 @patch("cv2.imshow", return_value=())
 @patch("cv2.cvtColor", return_value="Frame")

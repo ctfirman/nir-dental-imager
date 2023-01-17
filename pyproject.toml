@@ -6,4 +6,6 @@ build-backend = "hatchling.build"
 name = "nml"
 
 [tool.pytest.ini_options]
-pythonpath = "src/nml"
+pythonpath = [
+    ".", "src",
+]

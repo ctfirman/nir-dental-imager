@@ -10,11 +10,11 @@ source venv/bin/activate
 
 pip install -r requirements_dev.txt
 
-python -m src.nml.main
+python src/main.py
 ```
 
 Run Tests:
 
 ```
-python -m pytest
+pytest
 ```

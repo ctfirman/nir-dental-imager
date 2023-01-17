@@ -3,8 +3,8 @@ import os
 
 import matplotlib.pyplot as plt
 
-from src.nml.img_processing.crack_detect import crack_detect_method_1
-from src.nml.camera_utils.camera import main_video_stream
+from img_processing.crack_detect import crack_detect_method_1
+from camera_utils.camera import main_video_stream
 
 
 def main():
