@@ -2,6 +2,7 @@
 .idea
 
 tmp_img/
+tmp_vid/
 
 # vscode
 .vscode

@@ -3,6 +3,9 @@ import cv2
 
 
 def main_video_stream() -> None:
+    frame_width = 640
+    frame_hight = 480
+
     video = cv2.VideoCapture(0)
     print(f"Video = {video}")
 
@@ -12,8 +15,17 @@ def main_video_stream() -> None:
         raise Exception("Unable to open Video Capture")
 
     # # To set the resolution
-    # video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    # video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    # video.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    # video.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_hight)
+
+    # Create the video writer to save video
+    # (path, codec, fps, size)
+    video_writer = cv2.VideoWriter(
+        os.path.abspath("tmp_vid/test.avi"),
+        cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+        10,
+        (frame_width, frame_hight),
+    )
 
     while True:
         success, frame = video.read()
@@ -21,6 +33,9 @@ def main_video_stream() -> None:
         if not success:
             print("Can't receive frame. Exiting ...")
             break
+
+        # Save the frame to the video
+        video_writer.write(frame)
 
         # Our operations on the frame come here
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
