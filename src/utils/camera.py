@@ -54,7 +54,7 @@ def main_video_stream() -> None:
     video_close(video=video)
 
 
-def save_image(video_frame: cv2.Mat) -> None:
+def save_image(video_frame) -> None:
     print("Capturing Image")
     img_path = os.path.abspath("tmp_img/test.jpg")
     cv2.imwrite(img_path, video_frame)
