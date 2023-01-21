@@ -6,7 +6,7 @@ def main_video_stream() -> None:
     frame_width = 640
     frame_hight = 480
 
-    video = cv2.VideoCapture(0)
+    video = cv2.VideoCapture(4)
     print(f"Video = {video}")
 
     if not video.isOpened():
@@ -38,9 +38,9 @@ def main_video_stream() -> None:
         video_writer.write(frame)
 
         # Our operations on the frame come here
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # Display the resulting frame
-        cv2.imshow("NML", gray)
+        cv2.imshow("NML", frame)
 
         key_press = cv2.waitKey(1) & 0xFF
         # "q" will break out of the video
