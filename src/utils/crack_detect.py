@@ -1,13 +1,11 @@
 import os
-from typing import Tuple
+from typing import Tuple, Any
 
 import cv2
 import numpy as np
 
 
-def crack_detect_method_1(
-    img_src: str, save_img: bool = False
-) -> Tuple[cv2.Mat, cv2.Mat]:
+def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, Any]:
     """
     Algo from https://github.com/shomnathsomu/crack-detection-opencv
     1. read image
