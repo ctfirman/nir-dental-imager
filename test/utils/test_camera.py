@@ -28,7 +28,7 @@ def test_main_video_stream_not_opened(
     with pytest.raises(Exception) as e_info:
         main_video_stream()
 
-    VideoCapture_mock.assert_called_once_with(0)
+    VideoCapture_mock.assert_called_once_with(4)
     VideoWriter_mock.assert_not_called()
     video_close_mock.assert_called_once_with(video=mocked_video_not_opened)
     assert "Unable to open Video Capture" in str(e_info.value)
@@ -61,8 +61,8 @@ def test_main_video_stream_no_read(
 ):
     main_video_stream()
 
-    VideoCapture_mock.assert_called_once_with(0)
-    VideoWriter_mock.assert_called_once_with(ANY, ANY, 10, (ANY, ANY))
+    VideoCapture_mock.assert_called_once_with(4)
+    VideoWriter_mock.assert_called_once_with(ANY, ANY, 30, (ANY, ANY))
     video_close_mock.assert_called_once_with(video=mocked_video_no_read)
 
     mocked_video_writer.assert_not_called()
@@ -98,8 +98,8 @@ def test_main_video_stream_valid(
     mocked_video_valid.isOpened.assert_called_once()
     mocked_video_valid.read.assert_called_once()
 
-    VideoCapture_mock.assert_called_once_with(0)
-    VideoWriter_mock.assert_called_once_with(ANY, ANY, 10, (ANY, ANY))
+    VideoCapture_mock.assert_called_once_with(4)
+    VideoWriter_mock.assert_called_once_with(ANY, ANY, 30, (ANY, ANY))
 
     mocked_video_writer.write.assert_called_once_with("Frame")
 
