@@ -3,6 +3,7 @@
 
 tmp_img/
 tmp_vid/
+*.db
 
 # vscode
 .vscode

@@ -38,7 +38,7 @@ def main_video_stream() -> None:
         video_writer.write(frame)
 
         # Our operations on the frame come here
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # Display the resulting frame
         cv2.imshow("NML", frame)
 

@@ -7,5 +7,5 @@ name = "nml"
 
 [tool.pytest.ini_options]
 pythonpath = [
-    ".", "src",
+    ".", "src", "src/utils",
 ]
