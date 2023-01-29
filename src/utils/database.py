@@ -1,10 +1,9 @@
 import uuid
 import time
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
-
 
 from exceptions import UserAlreadyCreated, UserNotFound
 
@@ -57,26 +56,26 @@ class ImageSession(Base):
 
 # ------------------- Wrapper to use DB -------------------
 class nmlDB:
-    def __init__(self) -> None:
-        engine = create_engine("sqlite:///nml.db", echo=False)
+    def __init__(self, db_name) -> None:
+        engine = create_engine(f"sqlite:///{db_name}", echo=False)
         Base.metadata.create_all(bind=engine)
         Session = sessionmaker(bind=engine)
         self.session = Session()
 
-    def _get_users_all(self):
+    def _get_users_all(self) -> List[User]:
         results = self.session.query(User).all()
         print(results)
+        return results
 
-    def _get_image_sessions_all(self):
+    def _get_image_sessions_all(self) -> List[ImageSession]:
         results = self.session.query(ImageSession).all()
         print(results)
+        return results
 
     def insert_new_user(self, user_email: str, first_name: str, last_name: str) -> str:
-        try:
-            if self.get_uuid_by_email(user_email):
-                raise UserAlreadyCreated
-        except UserNotFound:
-            pass
+        # If a user already exists, exit and raise error
+        if self.get_uuid_by_email(user_email):
+            raise UserAlreadyCreated
 
         user_uuid = str(uuid.uuid4())
         user = User(user_uuid, user_email, first_name, last_name)
@@ -85,12 +84,15 @@ class nmlDB:
 
         return user_uuid
 
-    def get_uuid_by_email(self, user_email: str) -> str:
+    def get_uuid_by_email(self, user_email: str) -> Optional[str]:
+        """
+        Returns the associated uuid of a user. If no user is regiserted, returns None
+        """
         results = self.session.query(User).filter(User.user_email == user_email).first()
         if results:
             return results.get_uuid()
         else:
-            raise UserNotFound
+            return None
 
     def insert_new_image_session(self, uuid: str) -> int:
         session_id = int(time.time())
@@ -111,7 +113,7 @@ class nmlDB:
 
 
 if __name__ == "__main__":
-    user_db = nmlDB()
+    user_db = nmlDB("nml.db")
     try:
         new_user_uuid = user_db.insert_new_user("test.email@email.com", "ct", "firm")
         print(f"New user uuid = {new_user_uuid}, type = {type(new_user_uuid)}")
@@ -123,18 +125,19 @@ if __name__ == "__main__":
 
     user_db._get_users_all()
 
-    queried_user_uuid = user_db.get_uuid_by_email("test.email@email.com")
-    print(queried_user_uuid)
+    queried_user_uuid_1 = user_db.get_uuid_by_email("test.email@email.com")
+    print(queried_user_uuid_1)
 
-    try:
-        queried_user_uuid = user_db.get_uuid_by_email("email.tesat@email.com")
-        print(queried_user_uuid)
-    except UserNotFound:
-        print("This user does not exist")
+    queried_user_uuid_2 = user_db.get_uuid_by_email("email.tesat@email.com")
+    print(queried_user_uuid_2)
+    print("This user does not exist")
 
-    user_img_session = user_db.insert_new_image_session(queried_user_uuid)
-    print(user_img_session)
+    if queried_user_uuid_1:
+        user_img_session = user_db.insert_new_image_session(queried_user_uuid_1)
+        print(user_img_session)
 
-    all_user_img_session = user_db.get_all_img_sessions_for_uuid(queried_user_uuid)
-    for img_ses in all_user_img_session:
-        print(img_ses.session_id)
+        all_user_img_session = user_db.get_all_img_sessions_for_uuid(
+            queried_user_uuid_1
+        )
+        for img_ses in all_user_img_session:
+            print(img_ses.session_id)
