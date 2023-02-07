@@ -36,6 +36,16 @@ def test_insert_new_user_already_created(get_uuid_mock, uuid_mock):
     uuid_mock.assert_not_called()
 
 
+def test_get_all_users_names():
+    result_user_list = test_db.get_all_users_names()
+    assert result_user_list == ["first_last"]
+
+
+def test_get_all_user_emails():
+    result_user_list = test_db.get_all_users_emails()
+    assert result_user_list == ["test.email@email.com"]
+
+
 def test_get_uuid_by_email_valid():
     uuid = test_db.get_uuid_by_email(test_email)
 

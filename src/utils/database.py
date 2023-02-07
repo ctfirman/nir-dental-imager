@@ -15,8 +15,8 @@ class User(Base):
 
     user_uuid = Column("user_uuid", String, primary_key=True, unique=True)
     user_email = Column("user_email", String, unique=True)
-    first_name = Column("first_name", String, unique=True)
-    last_name = Column("last_name", String, unique=True)
+    first_name = Column("first_name", String, unique=False)
+    last_name = Column("last_name", String, unique=False)
     image_sessions = relationship(
         "ImageSession", back_populates="user", cascade="all, delete"
     )
@@ -32,6 +32,12 @@ class User(Base):
 
     def get_uuid(self) -> str:
         return str(self.user_uuid)
+
+    def get_full_name(self) -> str:
+        return f"{self.first_name}_{self.last_name}"
+
+    def get_email(self) -> str:
+        return str(self.user_email)
 
 
 class ImageSession(Base):
@@ -78,11 +84,21 @@ class nmlDB:
             raise UserAlreadyCreated
 
         user_uuid = str(uuid.uuid4())
-        user = User(user_uuid, user_email, first_name, last_name)
+        user = User(user_uuid, user_email, first_name.strip(), last_name.strip())
         self.session.add(user)
         self.session.commit()
 
         return user_uuid
+
+    def get_all_users_names(self) -> List[str]:
+        results = self.session.query(User).all()
+        user_name_list = [user.get_full_name() for user in results]
+        return user_name_list
+
+    def get_all_users_emails(self) -> List[str]:
+        results = self.session.query(User).all()
+        user_name_list = [user.get_email() for user in results]
+        return user_name_list
 
     def get_uuid_by_email(self, user_email: str) -> Optional[str]:
         """
