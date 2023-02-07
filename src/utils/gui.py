@@ -2,7 +2,7 @@ import sys
 
 from database import nmlDB
 
-from PyQt5.QtGui import QPalette, QColor
+from PyQt5.QtGui import QPalette, QColor, QPixmap
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QApplication,
@@ -88,12 +88,13 @@ class MainWindow(QMainWindow):
         self.USER_EMAIL = None
 
         # Window Setup
-        self.setWindowTitle("NIR DENTAL IMAGER")
+        self.setWindowTitle("nml.ai")
         self.setFixedSize(QSize(1080, 720))
 
         self.user_selector = QListWidget()
-        self.user_selector.setFixedSize(200, 200)
+        self.user_selector.setFixedSize(250, 300)
         self.user_selector.addItems(self.database.get_all_users_emails())
+        self.user_selector.setCurrentRow(0)
         self.user_selector.currentItemChanged.connect(self.user_selector_index_changed)
 
         self.add_new_user_btn = QPushButton("Create New User")
@@ -102,10 +103,16 @@ class MainWindow(QMainWindow):
         self.set_user_btn = QPushButton("Set User")
         self.set_user_btn.clicked.connect(self.set_user)
 
+        self.placeholder_vid = QLabel()
+        grey = QPixmap(750, 500)
+        grey.fill(QColor("darkGray"))
+        self.placeholder_vid.setPixmap(grey)
+
         # Set the Layout
         main_layout = QHBoxLayout()
         left_panel_layout = QVBoxLayout()
         user_btn_layout = QHBoxLayout()
+        right_panel_layout = QVBoxLayout()
 
         # Left Panel Layout
         left_panel_layout.addWidget(self.user_selector)
@@ -113,8 +120,12 @@ class MainWindow(QMainWindow):
         user_btn_layout.addWidget(self.set_user_btn)
         left_panel_layout.addLayout(user_btn_layout)
 
+        # Right Panel Layout
+        right_panel_layout.addWidget(self.placeholder_vid)
+
         # Add other layouts to main layout
         main_layout.addLayout(left_panel_layout)
+        main_layout.addLayout(right_panel_layout)
 
         # Set the central widget of the Window.
         container = QWidget()
