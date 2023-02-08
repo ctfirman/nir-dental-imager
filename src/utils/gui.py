@@ -97,11 +97,19 @@ class MainWindow(QMainWindow):
         self.user_selector.setCurrentRow(0)
         self.user_selector.currentItemChanged.connect(self.user_selector_index_changed)
 
-        self.add_new_user_btn = QPushButton("Create New User")
+        self.add_new_user_btn = QPushButton("Create User")
         self.add_new_user_btn.clicked.connect(self.create_new_user)
+        self.add_new_user_btn.setStyleSheet(
+            "border-radius: 10px; "
+            "font: 25 13pt \"Bahnschrift Light\"; "
+            "background-color: rgb(209, 170, 170)")
 
         self.set_user_btn = QPushButton("Set User")
         self.set_user_btn.clicked.connect(self.set_user)
+        self.set_user_btn.setStyleSheet(
+            "border-radius: 10px; "
+            "font: 25 13pt \"Bahnschrift Light\"; "
+            "background-color: rgb(209, 170, 170)")
 
         self.placeholder_vid = QLabel()
         grey = QPixmap(750, 500)
@@ -131,6 +139,15 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+
+        self.setStyleSheet("background-color: qlineargradient(spread:pad, x1:0.056, y1:0.119318, x2:1, y2:1, stop:0 rgba(255, 229, 222, 255), stop:1 rgba(229, 235, 255, 255));")
+
+        self.label = QLabel("NML.ai", self)
+        self.label.setStyleSheet("font: 25 58pt \"Bahnschrift Light\";"
+                                 " color: rgb(79, 79, 79);"
+                                 "background-color: transparent;")
+        self.label.setFixedSize(250, 80)
+        self.label.move(int(self.width()/2 - 100), 30)
 
     def user_selector_index_changed(self, i):
         print(f"cb index = {i.text()}")
