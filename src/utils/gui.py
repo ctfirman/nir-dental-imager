@@ -1,9 +1,9 @@
 import sys
+import cv2
+import numpy as np
 
-from database import nmlDB
-
-from PyQt5.QtGui import QPalette, QColor, QPixmap
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QPalette, QColor, QPixmap, QImage
+from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -25,6 +25,9 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QGroupBox,
 )
+
+from utils.database import nmlDB
+from utils.camera import VideoThread
 
 
 class CreateNewUserDialog(QDialog):
@@ -91,11 +94,20 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("nml.ai")
         self.setFixedSize(QSize(1080, 720))
 
+        # Create all Widgets and layouts
+        self.init_widgets()
+        self.init_layouts()
+
+    def init_widgets(self):
         self.user_selector = QListWidget()
         self.user_selector.setFixedSize(250, 300)
         self.user_selector.addItems(self.database.get_all_users_emails())
-        self.user_selector.setCurrentRow(0)
         self.user_selector.currentItemChanged.connect(self.user_selector_index_changed)
+
+        # Default to first item if exists
+        if self.user_selector.count():
+            self.user_selector.setCurrentRow(0)
+            self.USER_EMAIL = self.user_selector.item(0).text()
 
         self.add_new_user_btn = QPushButton("Create User")
         self.add_new_user_btn.clicked.connect(self.create_new_user)
@@ -113,16 +125,34 @@ class MainWindow(QMainWindow):
             "background-color: rgb(209, 170, 170)"
         )
 
-        self.placeholder_vid = QLabel()
+        self.title_label = QLabel("NML.ai", self)
+        self.title_label.setStyleSheet(
+            'font: 25 58pt "Bahnschrift Light";'
+            " color: rgb(79, 79, 79);"
+            "background-color: transparent;"
+        )
+        self.title_label.setFixedSize(250, 80)
+
+        # Initialize Video
+        self.video_label = QLabel()
         grey = QPixmap(750, 500)
         grey.fill(QColor("darkGray"))
-        self.placeholder_vid.setPixmap(grey)
+        self.video_label.setPixmap(grey)
 
+        # Placeholder for video thread, Will be initialized in set_user
+        self.video_thread = None
+
+    def init_layouts(self):
         # Set the Layout
-        main_layout = QHBoxLayout()
+        main_layout = QVBoxLayout()
+        content_layout = QHBoxLayout()
         left_panel_layout = QVBoxLayout()
         user_btn_layout = QHBoxLayout()
         right_panel_layout = QVBoxLayout()
+
+        # Main Layout
+        main_layout.addWidget(self.title_label)
+        main_layout.setAlignment(self.title_label, Qt.AlignHCenter)
 
         # Left Panel Layout
         left_panel_layout.addWidget(self.user_selector)
@@ -131,11 +161,13 @@ class MainWindow(QMainWindow):
         left_panel_layout.addLayout(user_btn_layout)
 
         # Right Panel Layout
-        right_panel_layout.addWidget(self.placeholder_vid)
+        right_panel_layout.addWidget(self.video_label)
 
         # Add other layouts to main layout
-        main_layout.addLayout(left_panel_layout)
-        main_layout.addLayout(right_panel_layout)
+        content_layout.addLayout(left_panel_layout)
+        content_layout.addLayout(right_panel_layout)
+
+        main_layout.addLayout(content_layout)
 
         # Set the central widget of the Window.
         container = QWidget()
@@ -146,18 +178,8 @@ class MainWindow(QMainWindow):
             "background-color: qlineargradient(spread:pad, x1:0.056, y1:0.119318, x2:1, y2:1, stop:0 rgba(255, 229, 222, 255), stop:1 rgba(229, 235, 255, 255));"
         )
 
-        self.label = QLabel("NML.ai", self)
-        self.label.setStyleSheet(
-            'font: 25 58pt "Bahnschrift Light";'
-            " color: rgb(79, 79, 79);"
-            "background-color: transparent;"
-        )
-        # TODO MOVE INSIDE LAYOUT
-        self.label.setFixedSize(250, 80)
-        self.label.move(int(self.width() / 2 - 100), 30)
-
     def user_selector_index_changed(self, i):
-        print(f"cb index = {i.text()}")
+        print(f"user_selector index = {i.text()}")
         self.USER_EMAIL = i.text()
 
     def create_new_user(self):
@@ -211,6 +233,33 @@ class MainWindow(QMainWindow):
             self.user_selector.setEnabled(False)
             self.set_user_btn.setEnabled(False)
             self.add_new_user_btn.setEnabled(False)
+
+            # Start the video thread,
+            # connect its signal to the update_image slot,
+            # and start the thread
+            self.video_thread = VideoThread(self.USER_UUID)
+            self.video_thread.change_image_signal.connect(self.update_image)
+            self.video_thread.start()
+
+    @pyqtSlot(np.ndarray)
+    def update_image(self, cv_img):
+        qt_image = self.convert_cv_to_qt(cv_img)
+        self.video_label.setPixmap(qt_image)
+
+    def convert_cv_to_qt(self, cv_img):
+        """Convert from an opencv image to QPixmap"""
+        rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        convert_to_Qt_format = QImage(
+            rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888
+        )
+        return QPixmap.fromImage(convert_to_Qt_format)
+
+    def closeEvent(self, event):
+        if self.video_thread:
+            self.video_thread.stop()
+        event.accept()
 
 
 def run_gui():

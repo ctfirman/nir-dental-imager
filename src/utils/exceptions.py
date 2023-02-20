@@ -1,3 +1,7 @@
+class VideoNotOpened(Exception):
+    pass
+
+
 class UserAlreadyCreated(Exception):
     pass
 

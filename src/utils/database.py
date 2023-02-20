@@ -5,7 +5,7 @@ from typing import List, Optional
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-from exceptions import UserAlreadyCreated, UserNotFound
+from utils.exceptions import UserAlreadyCreated, UserNotFound
 
 Base = declarative_base()
 
