@@ -111,6 +111,7 @@ class nmlDB:
             return None
 
     def insert_new_image_session(self, uuid: str) -> int:
+        # TODO: May Need to reword session id to be more unique
         session_id = int(time.time())
         img_session = ImageSession(session_id, datetime.now(), uuid)
         self.session.add(img_session)
