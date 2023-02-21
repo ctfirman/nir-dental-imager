@@ -6,14 +6,22 @@ from src.utils.camera import (
     VideoNotOpened,
     VideoThread,
 )
+from src.utils.database import nmlDB
 
+test_db = nmlDB(":memory:")
+test_VideoThread = VideoThread("test-uuid", test_db)
 
-test_VideoThread = VideoThread(None, None)
+test_VideoThread._DATABASE = Mock()
+test_VideoThread._DATABASE.check_set_filepath
+
 test_VideoThread.error_image_signal = Mock()
 test_VideoThread.error_image_signal.emit
 
 test_VideoThread.change_image_signal = Mock()
 test_VideoThread.change_image_signal.emit
+
+test_VideoThread.camera_available_signal = Mock()
+test_VideoThread.camera_available_signal.emit
 
 test_VideoThread.video_writer = Mock()
 test_VideoThread.video_writer.write
@@ -24,17 +32,17 @@ mocked_video_not_opened.read.return_value = (False, None)
 
 
 @patch("src.utils.camera.VideoThread._video_close")
-@patch("src.utils.camera.VideoThread._check_set_filepath")
 @patch("src.utils.camera.VideoThread._set_video_writer")
 @patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_not_opened)
 def test_VideoThread_run_not_opened(
     VideoCapture_mock,
     cvtColor_mock,
-    _check_set_filepath_mock,
     _set_video_writer_mock,
     video_close_mock,
 ):
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.check_set_filepath
     with pytest.raises(VideoNotOpened) as e_info:
         test_VideoThread.run()
 
@@ -47,11 +55,12 @@ def test_VideoThread_run_not_opened(
     mocked_video_not_opened.isOpened.assert_called_once()
     mocked_video_not_opened.read.assert_not_called()
 
-    _check_set_filepath_mock.assert_not_called()
+    test_VideoThread._DATABASE.check_set_filepath.assert_not_called()
     _set_video_writer_mock.assert_not_called()
 
     cvtColor_mock.assert_not_called()
     test_VideoThread.change_image_signal.emit.assert_not_called()
+    test_VideoThread.camera_available_signal.emit.assert_not_called()
 
 
 mocked_video_no_run_flag = Mock()
@@ -60,7 +69,6 @@ mocked_video_no_run_flag.read.return_value = (False, None)
 
 
 @patch("src.utils.camera.VideoThread._video_close")
-@patch("src.utils.camera.VideoThread._check_set_filepath")
 @patch("src.utils.camera.VideoThread._set_video_writer")
 @patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_no_run_flag)
@@ -68,9 +76,11 @@ def test_VideoThread_run_no_run_flag(
     VideoCapture_mock,
     cvtColor_mock,
     _set_video_writer_mock,
-    _check_set_filepath_mock,
     video_close_mock,
 ):
+    test_VideoThread.USER_UUID = "test-uuid-no-run-flag"
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.check_set_filepath
     test_VideoThread._run_flag = False
     test_VideoThread.run()
     test_VideoThread._run_flag = True
@@ -78,7 +88,9 @@ def test_VideoThread_run_no_run_flag(
     VideoCapture_mock.assert_called_once_with(ANY)
     video_close_mock.assert_called_once_with()
 
-    _check_set_filepath_mock.assert_called_once_with()
+    test_VideoThread._DATABASE.check_set_filepath.assert_called_once_with(
+        "test-uuid-no-run-flag"
+    )
     _set_video_writer_mock.assert_called_once_with(0)
 
     mocked_video_no_run_flag.isOpened.assert_called_once()
@@ -86,6 +98,7 @@ def test_VideoThread_run_no_run_flag(
     test_VideoThread.video_writer.write.assert_not_called()
     cvtColor_mock.assert_not_called()
     test_VideoThread.change_image_signal.emit.assert_not_called()
+    test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
 
 
 mocked_video_no_read = Mock()
@@ -94,7 +107,6 @@ mocked_video_no_read.read.return_value = (False, None)
 
 
 @patch("src.utils.camera.VideoThread._video_close")
-@patch("src.utils.camera.VideoThread._check_set_filepath")
 @patch("src.utils.camera.VideoThread._set_video_writer")
 @patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_no_read)
@@ -102,22 +114,27 @@ def test_VideoThread_run_no_read(
     VideoCapture_mock,
     cvtColor_mock,
     _set_video_writer_mock,
-    _check_set_filepath_mock,
     video_close_mock,
 ):
+    test_VideoThread.USER_UUID = "test-uuid-no-read"
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.check_set_filepath
     test_VideoThread.run()
 
     VideoCapture_mock.assert_called_once_with(ANY)
     video_close_mock.assert_called_once_with()
 
     mocked_video_no_read.isOpened.assert_called_once()
-    _check_set_filepath_mock.assert_called_once_with()
+    test_VideoThread._DATABASE.check_set_filepath.assert_called_once_with(
+        "test-uuid-no-read"
+    )
     _set_video_writer_mock.assert_called_once_with(0)
 
     mocked_video_no_read.read.assert_called_once()
     test_VideoThread.video_writer.write.assert_not_called()
     cvtColor_mock.assert_not_called()
     test_VideoThread.change_image_signal.emit.assert_not_called()
+    test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
 
 
 mocked_video_valid_no_record = Mock()
@@ -126,7 +143,6 @@ mocked_video_valid_no_record.read.side_effect = [(True, "Frame1"), (False, "Fram
 
 
 @patch("src.utils.camera.VideoThread._video_close")
-@patch("src.utils.camera.VideoThread._check_set_filepath")
 @patch("src.utils.camera.VideoThread._set_video_writer")
 @patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_valid_no_record)
@@ -134,9 +150,11 @@ def test_VideoThread_run_valid_no_record(
     VideoCapture_mock,
     cvtColor_mock,
     _set_video_writer_mock,
-    _check_set_filepath_mock,
     video_close_mock,
 ):
+    test_VideoThread.USER_UUID = "test-uuid-no-record-flag"
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.check_set_filepath
     test_VideoThread.run()
 
     mocked_video_valid_no_record.isOpened.assert_called_once()
@@ -144,13 +162,16 @@ def test_VideoThread_run_valid_no_record(
 
     VideoCapture_mock.assert_called_once_with(ANY)
 
-    _check_set_filepath_mock.assert_called_once_with()
+    test_VideoThread._DATABASE.check_set_filepath.assert_called_once_with(
+        "test-uuid-no-record-flag"
+    )
     _set_video_writer_mock.assert_called_once_with(0)
 
     test_VideoThread.video_writer.write.assert_not_called()
     video_close_mock.assert_called_once_with()
     cvtColor_mock.assert_called_once_with("Frame1", ANY)
     test_VideoThread.change_image_signal.emit.assert_has_calls([call("Frame1")])
+    test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
 
 
 mocked_video_valid_with_record = Mock()
@@ -159,7 +180,6 @@ mocked_video_valid_with_record.read.side_effect = [(True, "Frame3"), (False, "Fr
 
 
 @patch("src.utils.camera.VideoThread._video_close")
-@patch("src.utils.camera.VideoThread._check_set_filepath")
 @patch("src.utils.camera.VideoThread._set_video_writer")
 @patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_valid_with_record)
@@ -167,9 +187,11 @@ def test_VideoThread_run_valid_with_record(
     VideoCapture_mock,
     cvtColor_mock,
     _set_video_writer_mock,
-    _check_set_filepath_mock,
     video_close_mock,
 ):
+    test_VideoThread.USER_UUID = "test-uuid-record-flag"
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.check_set_filepath
     test_VideoThread._record_flag = True
     test_VideoThread.run()
     test_VideoThread._record_flag = False
@@ -179,13 +201,16 @@ def test_VideoThread_run_valid_with_record(
 
     VideoCapture_mock.assert_called_once_with(ANY)
 
-    _check_set_filepath_mock.assert_called_once_with()
+    test_VideoThread._DATABASE.check_set_filepath.assert_called_once_with(
+        "test-uuid-record-flag"
+    )
     _set_video_writer_mock.assert_called_once_with(0)
 
     test_VideoThread.video_writer.write.assert_called_once_with("Frame3")
     cvtColor_mock.assert_called_once_with("Frame3", ANY)
     test_VideoThread.change_image_signal.emit.assert_has_calls([call("Frame3")])
     video_close_mock.assert_called_once_with()
+    test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
 
 
 @patch("cv2.destroyAllWindows")
@@ -206,36 +231,6 @@ def test_stop(wait_mock):
     assert test_VideoThread._run_flag == False
     assert test_VideoThread._record_flag == False
     wait_mock.assert_called_once_with()
-
-
-@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
-@patch("os.makedirs")
-@patch("os.path.isdir", return_value=True)
-def test__check_set_filepath_exists(isdir_mock, makedirs_mock, abspath_mock):
-    test_VideoThread.USER_UUID = "test-uuid-filepath-exist"
-    test_VideoThread._check_set_filepath()
-
-    isdir_mock.assert_called_once()
-    abspath_mock.assert_called_once_with("tmp_vid/test-uuid-filepath-exist/raw")
-    makedirs_mock.assert_not_called()
-
-
-@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
-@patch("os.makedirs")
-@patch("os.path.isdir", return_value=False)
-def test__check_set_filepath_doesnt_exist(isdir_mock, makedirs_mock, abspath_mock):
-    test_VideoThread.USER_UUID = "test-uuid-filepath-not-exist"
-    test_VideoThread._check_set_filepath()
-
-    isdir_mock.assert_called_once()
-    abspath_mock.assert_has_calls(
-        [
-            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
-            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
-            call("tmp_vid/test-uuid-filepath-not-exist/complete"),
-        ]
-    )
-    makedirs_mock.assert_has_calls([call("path1"), call("path2")])
 
 
 @patch("cv2.VideoWriter")
@@ -272,6 +267,9 @@ def test_record_toggle_original_false(_set_video_writer_mock):
         "test-uuid-record-toggle-false"
     )
     _set_video_writer_mock.assert_called_once_with(0)
+    test_VideoThread._DATABASE.check_set_filepath.assert_called_once_with(
+        "test-uuid-record-toggle-false"
+    )
 
 
 @patch("src.utils.camera.VideoThread._set_video_writer")
@@ -286,3 +284,4 @@ def test_record_toggle_original_true(_set_video_writer_mock):
     assert test_VideoThread._record_flag == False
     test_VideoThread._DATABASE.insert_new_image_session.assert_not_called()
     _set_video_writer_mock.assert_not_called()
+    test_VideoThread._DATABASE.check_set_filepath.assert_not_called()

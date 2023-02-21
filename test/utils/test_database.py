@@ -96,3 +96,31 @@ def test__get_imgae_sessions_all():
     for res in result:
         assert res.session_id == test_session_id
         assert res.user_uuid == test_uuid
+
+
+@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
+@patch("os.makedirs")
+@patch("os.path.isdir", return_value=True)
+def test_check_set_filepath_exists(isdir_mock, makedirs_mock, abspath_mock):
+    test_db.check_set_filepath("test-uuid-filepath-exist")
+
+    isdir_mock.assert_called_once()
+    abspath_mock.assert_called_once_with("tmp_vid/test-uuid-filepath-exist/raw")
+    makedirs_mock.assert_not_called()
+
+
+@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
+@patch("os.makedirs")
+@patch("os.path.isdir", return_value=False)
+def test_check_set_filepath_doesnt_exist(isdir_mock, makedirs_mock, abspath_mock):
+    test_db.check_set_filepath("test-uuid-filepath-not-exist")
+
+    isdir_mock.assert_called_once()
+    abspath_mock.assert_has_calls(
+        [
+            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
+            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
+            call("tmp_vid/test-uuid-filepath-not-exist/complete"),
+        ]
+    )
+    makedirs_mock.assert_has_calls([call("path1"), call("path2")])

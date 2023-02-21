@@ -140,9 +140,12 @@ class MainWindow(QMainWindow):
         self.video_label.setPixmap(grey)
 
         # Placeholder for video thread, Will be initialized in set_user with complete info
-        self.video_thread = VideoThread(None, self.database)
+        self.video_thread = VideoThread(
+            self.USER_UUID if self.USER_UUID else "empty-uuid", self.database
+        )
         self.video_thread.change_image_signal.connect(self.update_image)
         self.video_thread.error_image_signal.connect(self.error_video_handler)
+        self.video_thread.camera_available_signal.connect(self.enable_recording_toggle)
 
         # Record toggle button
         self.record_toggle_state = False
@@ -162,7 +165,7 @@ class MainWindow(QMainWindow):
 
         # Main Layout
         main_layout.addWidget(self.title_label)
-        main_layout.setAlignment(self.title_label, Qt.AlignHCenter)
+        main_layout.setAlignment(self.title_label, Qt.AlignHCenter)  # type: ignore
 
         # Left Panel Layout
         left_panel_layout.addWidget(self.user_selector)
@@ -245,8 +248,6 @@ class MainWindow(QMainWindow):
             self.set_user_btn.setEnabled(False)
             self.add_new_user_btn.setEnabled(False)
 
-            self.record_toggle_button.setEnabled(True)
-
             # Start video thread
             self.video_thread.set_user(self.USER_UUID)
             self.video_thread.start()  # TODO restart thread if changed user. Maybe? -> https://stackoverflow.com/questions/44006024/restart-qthread-with-gui
@@ -262,22 +263,27 @@ class MainWindow(QMainWindow):
 
         self.video_thread.record_toggle()
 
-    @pyqtSlot(str)
-    def error_video_handler(self, msg):
+    # TODO determine why uncommenting returns error
+    # @pyqtSlot(str)
+    def error_video_handler(self, msg: str) -> None:
         print(msg)
 
-    @pyqtSlot(np.ndarray)
-    def update_image(self, cv_img):
+    # @pyqtSlot(np.ndarray)
+    def update_image(self, cv_img: np.ndarray) -> None:
         qt_image = self.convert_cv_to_qt(cv_img)
         self.video_label.setPixmap(qt_image)
 
-    def convert_cv_to_qt(self, cv_img):
+    # @pyqtSlot(bool)
+    def enable_recording_toggle(self, toggle_state: bool) -> None:
+        self.record_toggle_button.setEnabled(toggle_state)
+
+    def convert_cv_to_qt(self, cv_img) -> QPixmap:
         """Convert from an opencv image to QPixmap"""
         rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
         convert_to_Qt_format = QImage(
-            rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888
+            rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888  # type: ignore
         )
         return QPixmap.fromImage(convert_to_Qt_format)
 

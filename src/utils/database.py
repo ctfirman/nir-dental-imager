@@ -1,3 +1,4 @@
+import os
 import uuid
 import time
 from datetime import datetime
@@ -127,6 +128,12 @@ class nmlDB:
             .all()
         )
         return results
+
+    @classmethod
+    def check_set_filepath(cls, user_uuid: str) -> None:
+        if not os.path.isdir(os.path.abspath(f"tmp_vid/{user_uuid}/raw")):
+            os.makedirs(os.path.abspath(f"tmp_vid/{user_uuid}/raw"))
+            os.makedirs(os.path.abspath(f"tmp_vid/{user_uuid}/complete"))
 
 
 if __name__ == "__main__":
