@@ -139,8 +139,18 @@ class MainWindow(QMainWindow):
         grey.fill(QColor("darkGray"))
         self.video_label.setPixmap(grey)
 
-        # Placeholder for video thread, Will be initialized in set_user
-        self.video_thread = None
+        # Placeholder for video thread, Will be initialized in set_user with complete info
+        self.video_thread = VideoThread(None, self.database)
+        self.video_thread.change_image_signal.connect(self.update_image)
+        self.video_thread.error_image_signal.connect(self.error_video_handler)
+
+        # Record toggle button
+        self.record_toggle_state = False
+        self.record_toggle_button = QPushButton("Start Recording")
+        self.record_toggle_button.setCheckable(True)
+        self.record_toggle_button.clicked.connect(self.record_toggle_handler)
+        self.record_toggle_button.setChecked(self.record_toggle_state)
+        self.record_toggle_button.setEnabled(False)
 
     def init_layouts(self):
         # Set the Layout
@@ -162,6 +172,7 @@ class MainWindow(QMainWindow):
 
         # Right Panel Layout
         right_panel_layout.addWidget(self.video_label)
+        right_panel_layout.addWidget(self.record_toggle_button)
 
         # Add other layouts to main layout
         content_layout.addLayout(left_panel_layout)
@@ -234,12 +245,26 @@ class MainWindow(QMainWindow):
             self.set_user_btn.setEnabled(False)
             self.add_new_user_btn.setEnabled(False)
 
-            # Start the video thread,
-            # connect its signal to the update_image slot,
-            # and start the thread
-            self.video_thread = VideoThread(self.USER_UUID)
-            self.video_thread.change_image_signal.connect(self.update_image)
-            self.video_thread.start()
+            self.record_toggle_button.setEnabled(True)
+
+            # Start video thread
+            self.video_thread.set_user(self.USER_UUID)
+            self.video_thread.start()  # TODO restart thread if changed user. Maybe? -> https://stackoverflow.com/questions/44006024/restart-qthread-with-gui
+
+    def record_toggle_handler(self, checked):
+        self.record_toggle_state = checked
+        if self.record_toggle_state:
+            self.record_toggle_button.setText("Stop Recording")
+        else:
+            self.record_toggle_button.setText("Start Recording")
+
+        print(self.record_toggle_state)
+
+        self.video_thread.record_toggle()
+
+    @pyqtSlot(str)
+    def error_video_handler(self, msg):
+        print(msg)
 
     @pyqtSlot(np.ndarray)
     def update_image(self, cv_img):
