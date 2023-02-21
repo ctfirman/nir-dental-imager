@@ -175,6 +175,7 @@ class MainWindow(QMainWindow):
 
         # Right Panel Layout
         right_panel_layout.addWidget(self.video_label)
+        right_panel_layout.setAlignment(self.video_label, Qt.AlignCenter)  # type: ignore
         right_panel_layout.addWidget(self.record_toggle_button)
 
         # Add other layouts to main layout
