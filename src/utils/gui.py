@@ -2,8 +2,8 @@ import sys
 import cv2
 import numpy as np
 
-from PyQt5.QtGui import QPalette, QColor, QPixmap, QImage
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QColor, QPixmap, QImage
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -16,12 +16,9 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QVBoxLayout,
     QHBoxLayout,
-    QGridLayout,
     QFormLayout,
     QTabWidget,
-    QMenu,
-    QAction,
-    QComboBox,
+    QStackedLayout,
     QListWidget,
     QGroupBox,
 )
@@ -158,31 +155,47 @@ class MainWindow(QMainWindow):
     def init_layouts(self):
         # Set the Layout
         main_layout = QVBoxLayout()
-        content_layout = QHBoxLayout()
-        left_panel_layout = QVBoxLayout()
+        self.stacked_layout = QStackedLayout()
+        user_selector_layout = QVBoxLayout()
         user_btn_layout = QHBoxLayout()
-        right_panel_layout = QVBoxLayout()
+        new_scan_layout = QVBoxLayout()
 
         # Main Layout
         main_layout.addWidget(self.title_label)
         main_layout.setAlignment(self.title_label, Qt.AlignHCenter)  # type: ignore
 
-        # Left Panel Layout
-        left_panel_layout.addWidget(self.user_selector)
+        # User Selector Layout
+        user_selector_layout.addWidget(self.user_selector)
         user_btn_layout.addWidget(self.add_new_user_btn)
         user_btn_layout.addWidget(self.set_user_btn)
-        left_panel_layout.addLayout(user_btn_layout)
+        user_selector_layout.addLayout(user_btn_layout)
+        user_selector_layout.setAlignment(self.user_selector, Qt.AlignHCenter)  # type: ignore
 
-        # Right Panel Layout
-        right_panel_layout.addWidget(self.video_label)
-        right_panel_layout.setAlignment(self.video_label, Qt.AlignCenter)  # type: ignore
-        right_panel_layout.addWidget(self.record_toggle_button)
+        user_selector_container = QWidget()
+        user_selector_container.setLayout(user_selector_layout)
+
+        # New Scan Layout
+        new_scan_layout.addWidget(self.video_label)
+        new_scan_layout.setAlignment(self.video_label, Qt.AlignCenter)  # type: ignore
+        new_scan_layout.addWidget(self.record_toggle_button)
+
+        new_scan_container = QWidget()
+        new_scan_container.setLayout(new_scan_layout)
+
+        # Previous Scan Layout
+        past_scan_container = QWidget()
+
+        # Tab Widget for new scan and past scan
+        content_tab = QTabWidget()
+        content_tab.addTab(new_scan_container, "New Scan")
+        content_tab.addTab(past_scan_container, "Past Scan")
+
+        # Stacked layout for swapping between login and content
+        self.stacked_layout.addWidget(user_selector_container)
+        self.stacked_layout.addWidget(content_tab)
 
         # Add other layouts to main layout
-        content_layout.addLayout(left_panel_layout)
-        content_layout.addLayout(right_panel_layout)
-
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(self.stacked_layout)
 
         # Set the central widget of the Window.
         container = QWidget()
@@ -253,6 +266,9 @@ class MainWindow(QMainWindow):
             self.video_thread.set_user(self.USER_UUID)
             self.video_thread.start()  # TODO restart thread if changed user. Maybe? -> https://stackoverflow.com/questions/44006024/restart-qthread-with-gui
 
+            # Swap layouts
+            self.stacked_layout.setCurrentIndex(1)
+
     def record_toggle_handler(self, checked):
         self.record_toggle_state = checked
         if self.record_toggle_state:
@@ -271,14 +287,14 @@ class MainWindow(QMainWindow):
 
     # @pyqtSlot(np.ndarray)
     def update_image(self, cv_img: np.ndarray) -> None:
-        qt_image = self.convert_cv_to_qt(cv_img)
+        qt_image = self._convert_cv_to_qt(cv_img)
         self.video_label.setPixmap(qt_image)
 
     # @pyqtSlot(bool)
     def enable_recording_toggle(self, toggle_state: bool) -> None:
         self.record_toggle_button.setEnabled(toggle_state)
 
-    def convert_cv_to_qt(self, cv_img) -> QPixmap:
+    def _convert_cv_to_qt(self, cv_img) -> QPixmap:
         """Convert from an opencv image to QPixmap"""
         rgb_image = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
