@@ -48,7 +48,11 @@ class VideoThread(QThread):
         # Create the video writer to save video
         # (path, codec, fps, size)
         self.video_writer = cv2.VideoWriter(
-            os.path.abspath(f"tmp_vid/{self.USER_UUID}/raw/{image_session}.avi"),
+            os.path.join(
+                self._DATABASE.get_base_filepath(self.USER_UUID),
+                "raw",
+                f"{image_session}.avi",
+            ),
             cv2.VideoWriter_fourcc("M", "J", "P", "G"),
             30,
             (self.frame_width, self.frame_hight),

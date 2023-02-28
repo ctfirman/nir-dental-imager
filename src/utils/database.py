@@ -130,10 +130,15 @@ class nmlDB:
         return results
 
     @classmethod
+    def get_base_filepath(cls, user_uuid: str) -> str:
+        return os.path.abspath(f"tmp_vid/{user_uuid}/")
+
+    @classmethod
     def check_set_filepath(cls, user_uuid: str) -> None:
-        if not os.path.isdir(os.path.abspath(f"tmp_vid/{user_uuid}/raw")):
-            os.makedirs(os.path.abspath(f"tmp_vid/{user_uuid}/raw"))
-            os.makedirs(os.path.abspath(f"tmp_vid/{user_uuid}/complete"))
+        base_filepath = cls.get_base_filepath(user_uuid)
+        if not os.path.isdir(os.path.join(base_filepath, "raw")):
+            os.makedirs(os.path.join(base_filepath, "raw"))
+            os.makedirs(os.path.join(base_filepath, "complete"))
 
 
 if __name__ == "__main__":
