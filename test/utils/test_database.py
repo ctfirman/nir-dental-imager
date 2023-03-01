@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import patch, Mock, MagicMock, ANY, call
 
@@ -34,6 +35,16 @@ def test_insert_new_user_already_created(get_uuid_mock, uuid_mock):
 
     get_uuid_mock.assert_called_once_with(test_email)
     uuid_mock.assert_not_called()
+
+
+def test_get_all_users_names():
+    result_user_list = test_db.get_all_users_names()
+    assert result_user_list == ["first_last"]
+
+
+def test_get_all_user_emails():
+    result_user_list = test_db.get_all_users_emails()
+    assert result_user_list == ["test.email@email.com"]
 
 
 def test_get_uuid_by_email_valid():
@@ -86,3 +97,52 @@ def test__get_imgae_sessions_all():
     for res in result:
         assert res.session_id == test_session_id
         assert res.user_uuid == test_uuid
+
+
+@patch(
+    "src.utils.database.nmlDB.get_base_filepath",
+    return_value="base-filepath-test_check_set_filepath_exists",
+)
+@patch("os.makedirs")
+@patch("os.path.isdir", return_value=True)
+def test_check_set_filepath_exists(isdir_mock, makedirs_mock, get_base_filepath_mock):
+    test_db.check_set_filepath("test-uuid-filepath-exist")
+
+    isdir_mock.assert_called_once()
+    get_base_filepath_mock.assert_called_once_with("test-uuid-filepath-exist")
+    makedirs_mock.assert_not_called()
+
+
+@patch(
+    "src.utils.database.nmlDB.get_base_filepath",
+    return_value="base-filepath-test_check_set_filepath_doesnt_exist",
+)
+@patch("os.makedirs")
+@patch("os.path.isdir", return_value=False)
+def test_check_set_filepath_doesnt_exist(
+    isdir_mock, makedirs_mock, get_base_filepath_mock
+):
+    test_db.check_set_filepath("test-uuid-filepath-not-exist")
+
+    isdir_mock.assert_called_once()
+    get_base_filepath_mock.assert_called_once_with("test-uuid-filepath-not-exist")
+    makedirs_mock.assert_has_calls(
+        [
+            call(
+                os.path.normpath(
+                    "base-filepath-test_check_set_filepath_doesnt_exist/raw"
+                )
+            ),
+            call(
+                os.path.normpath(
+                    "base-filepath-test_check_set_filepath_doesnt_exist/complete"
+                )
+            ),
+        ]
+    )
+
+
+def test_get_base_filepath():
+    ret = test_db.get_base_filepath("test-uuid-get-base-filepath")
+
+    assert ret == os.path.abspath("tmp_vid/test-uuid-get-base-filepath/")

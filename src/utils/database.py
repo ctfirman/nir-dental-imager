@@ -1,3 +1,4 @@
+import os
 import uuid
 import time
 from datetime import datetime
@@ -5,7 +6,7 @@ from typing import List, Optional
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-from exceptions import UserAlreadyCreated, UserNotFound
+from utils.exceptions import UserAlreadyCreated, UserNotFound
 
 Base = declarative_base()
 
@@ -15,8 +16,8 @@ class User(Base):
 
     user_uuid = Column("user_uuid", String, primary_key=True, unique=True)
     user_email = Column("user_email", String, unique=True)
-    first_name = Column("first_name", String, unique=True)
-    last_name = Column("last_name", String, unique=True)
+    first_name = Column("first_name", String, unique=False)
+    last_name = Column("last_name", String, unique=False)
     image_sessions = relationship(
         "ImageSession", back_populates="user", cascade="all, delete"
     )
@@ -32,6 +33,12 @@ class User(Base):
 
     def get_uuid(self) -> str:
         return str(self.user_uuid)
+
+    def get_full_name(self) -> str:
+        return f"{self.first_name}_{self.last_name}"
+
+    def get_email(self) -> str:
+        return str(self.user_email)
 
 
 class ImageSession(Base):
@@ -78,11 +85,21 @@ class nmlDB:
             raise UserAlreadyCreated
 
         user_uuid = str(uuid.uuid4())
-        user = User(user_uuid, user_email, first_name, last_name)
+        user = User(user_uuid, user_email, first_name.strip(), last_name.strip())
         self.session.add(user)
         self.session.commit()
 
         return user_uuid
+
+    def get_all_users_names(self) -> List[str]:
+        results = self.session.query(User).all()
+        user_name_list = [user.get_full_name() for user in results]
+        return user_name_list
+
+    def get_all_users_emails(self) -> List[str]:
+        results = self.session.query(User).all()
+        user_name_list = [user.get_email() for user in results]
+        return user_name_list
 
     def get_uuid_by_email(self, user_email: str) -> Optional[str]:
         """
@@ -95,6 +112,7 @@ class nmlDB:
             return None
 
     def insert_new_image_session(self, uuid: str) -> int:
+        # TODO: May Need to reword session id to be more unique
         session_id = int(time.time())
         img_session = ImageSession(session_id, datetime.now(), uuid)
         self.session.add(img_session)
@@ -110,6 +128,17 @@ class nmlDB:
             .all()
         )
         return results
+
+    @classmethod
+    def get_base_filepath(cls, user_uuid: str) -> str:
+        return os.path.abspath(f"tmp_vid/{user_uuid}/")
+
+    @classmethod
+    def check_set_filepath(cls, user_uuid: str) -> None:
+        base_filepath = cls.get_base_filepath(user_uuid)
+        if not os.path.isdir(os.path.join(base_filepath, "raw")):
+            os.makedirs(os.path.join(base_filepath, "raw"))
+            os.makedirs(os.path.join(base_filepath, "complete"))
 
 
 if __name__ == "__main__":
