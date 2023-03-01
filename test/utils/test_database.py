@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import patch, Mock, MagicMock, ANY, call
 
@@ -98,29 +99,50 @@ def test__get_imgae_sessions_all():
         assert res.user_uuid == test_uuid
 
 
-@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
+@patch(
+    "src.utils.database.nmlDB.get_base_filepath",
+    return_value="base-filepath-test_check_set_filepath_exists",
+)
 @patch("os.makedirs")
 @patch("os.path.isdir", return_value=True)
-def test_check_set_filepath_exists(isdir_mock, makedirs_mock, abspath_mock):
+def test_check_set_filepath_exists(isdir_mock, makedirs_mock, get_base_filepath_mock):
     test_db.check_set_filepath("test-uuid-filepath-exist")
 
     isdir_mock.assert_called_once()
-    abspath_mock.assert_called_once_with("tmp_vid/test-uuid-filepath-exist/raw")
+    get_base_filepath_mock.assert_called_once_with("test-uuid-filepath-exist")
     makedirs_mock.assert_not_called()
 
 
-@patch("os.path.abspath", side_effect=[None, "path1", "path2"])
+@patch(
+    "src.utils.database.nmlDB.get_base_filepath",
+    return_value="base-filepath-test_check_set_filepath_doesnt_exist",
+)
 @patch("os.makedirs")
 @patch("os.path.isdir", return_value=False)
-def test_check_set_filepath_doesnt_exist(isdir_mock, makedirs_mock, abspath_mock):
+def test_check_set_filepath_doesnt_exist(
+    isdir_mock, makedirs_mock, get_base_filepath_mock
+):
     test_db.check_set_filepath("test-uuid-filepath-not-exist")
 
     isdir_mock.assert_called_once()
-    abspath_mock.assert_has_calls(
+    get_base_filepath_mock.assert_called_once_with("test-uuid-filepath-not-exist")
+    makedirs_mock.assert_has_calls(
         [
-            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
-            call("tmp_vid/test-uuid-filepath-not-exist/raw"),
-            call("tmp_vid/test-uuid-filepath-not-exist/complete"),
+            call(
+                os.path.normpath(
+                    "base-filepath-test_check_set_filepath_doesnt_exist/raw"
+                )
+            ),
+            call(
+                os.path.normpath(
+                    "base-filepath-test_check_set_filepath_doesnt_exist/complete"
+                )
+            ),
         ]
     )
-    makedirs_mock.assert_has_calls([call("path1"), call("path2")])
+
+
+def test_get_base_filepath():
+    ret = test_db.get_base_filepath("test-uuid-get-base-filepath")
+
+    assert ret == os.path.abspath("tmp_vid/test-uuid-get-base-filepath/")

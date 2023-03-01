@@ -13,6 +13,7 @@ test_VideoThread = VideoThread("test-uuid", test_db)
 
 test_VideoThread._DATABASE = Mock()
 test_VideoThread._DATABASE.check_set_filepath
+test_VideoThread._DATABASE.get_base_filepath.return_value = "base-path"
 
 test_VideoThread.error_image_signal = Mock()
 test_VideoThread.error_image_signal.emit
@@ -238,10 +239,14 @@ def test__set_video_writer(VideoWriter_mock):
     # Create the video writer to save video
     # (path, codec, fps, size)
     test_VideoThread.USER_UUID = "test-uuid-video-writer"
+    test_VideoThread._DATABASE = Mock()
+    test_VideoThread._DATABASE.get_base_filepath.return_value = (
+        "base-path-set-video-writer"
+    )
     test_VideoThread._set_video_writer(0)
 
     VideoWriter_mock.assert_called_once_with(
-        os.path.abspath("tmp_vid/test-uuid-video-writer/raw/0.avi"),
+        os.path.normpath("base-path-set-video-writer/raw/0.avi"),
         ANY,
         30,
         (ANY, ANY),
