@@ -2,15 +2,21 @@ import cv2
 import os
 import glob
 
-def save_all_frames_from_video(video_path, dir_path, basename, ext='jpg'):
+def save_all_frames_from_video(video_path, dir_to_save_frames, basename_of_frames, ext='jpg'):
+
+    # video_path is the path to the input video
+    # dir_path is the path where the images, or "frames", should be saved
+    # basename is the name of the generated images, or "frames", that would be saved in dir_path
+
+    # TODO: Change dir_to_save_frames to always be a specific intermediary folder under the uuid under tmp_vid
 
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
         return
 
-    os.makedirs(dir_path, exist_ok=True)
-    base_path = os.path.join(dir_path, basename)
+    os.makedirs(dir_to_save_frames, exist_ok=True)
+    base_path = os.path.join(dir_to_save_frames, basename_of_frames)
 
     digit = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))
     n = 0
@@ -24,6 +30,8 @@ def save_all_frames_from_video(video_path, dir_path, basename, ext='jpg'):
             return
 
 def image_stitch(sensitivity_factor, images_folder, ext='jpg'):
+
+    # images_folder is where all the images, or "frames", of the input video are
     image_path = glob.glob(images_folder + '/*.' + ext)
     image_path = image_path[0::sensitivity_factor]
     images = []
