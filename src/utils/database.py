@@ -46,19 +46,21 @@ class ImageSession(Base):
 
     session_id = Column("session_id", Integer, primary_key=True, unique=True)
     date = Column("date", DateTime, default=datetime.now())
+    image_name = Column("image_name", String, default="", unique=False)
     user_uuid = Column(
         String,
         ForeignKey("users_table.user_uuid"),
     )
     user = relationship("User", back_populates="image_sessions")
 
-    def __init__(self, session_id, date, user_uuid) -> None:
+    def __init__(self, session_id, date, user_uuid, image_name="") -> None:
         self.session_id = session_id
         self.user_uuid = user_uuid
         self.date = date
+        self.image_name = image_name
 
     def __repr__(self):
-        return f"ImageSession=({self.session_id}, {self.date}, {self.user_uuid}))"
+        return f"ImageSession=({self.session_id}, {self.image_name}, {self.date}, {self.user_uuid}))"
 
 
 # ------------------- Wrapper to use DB -------------------
@@ -111,10 +113,10 @@ class nmlDB:
         else:
             return None
 
-    def insert_new_image_session(self, uuid: str) -> int:
+    def insert_new_image_session(self, uuid: str, image_name: str = "") -> int:
         # TODO: May Need to reword session id to be more unique
-        session_id = int(time.time())
-        img_session = ImageSession(session_id, datetime.now(), uuid)
+        session_id = int(time.time() * 1000)
+        img_session = ImageSession(session_id, datetime.now(), uuid, image_name)
         self.session.add(img_session)
         self.session.commit()
 
@@ -131,7 +133,7 @@ class nmlDB:
 
     @classmethod
     def get_base_filepath(cls, user_uuid: str) -> str:
-        return os.path.abspath(f"tmp_vid/{user_uuid}/")
+        return os.path.abspath(f"nml_img/{user_uuid}/")
 
     @classmethod
     def check_set_filepath(cls, user_uuid: str) -> None:

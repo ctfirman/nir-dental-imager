@@ -86,6 +86,7 @@ class MainWindow(QMainWindow):
         self.database = database
         self.USER_UUID = None
         self.USER_EMAIL = None
+        self.MOST_RECENT_IMAGE_SESSION = 0
 
         # Window Setup
         self.setWindowTitle("nml.ai")
@@ -142,15 +143,22 @@ class MainWindow(QMainWindow):
         )
         self.video_thread.change_image_signal.connect(self.update_image)
         self.video_thread.error_image_signal.connect(self.error_video_handler)
-        self.video_thread.camera_available_signal.connect(self.enable_recording_toggle)
+        self.video_thread.camera_available_signal.connect(
+            self.enable_initial_capture_toggle
+        )
+        self.video_thread.capture_complete_signal.connect(
+            self.completed_capture_handler
+        )
 
-        # Record toggle button
-        self.record_toggle_state = False
-        self.record_toggle_button = QPushButton("Start Recording")
-        self.record_toggle_button.setCheckable(True)
-        self.record_toggle_button.clicked.connect(self.record_toggle_handler)
-        self.record_toggle_button.setChecked(self.record_toggle_state)
-        self.record_toggle_button.setEnabled(False)
+        # Capture image button
+        self.capture_image_button = QPushButton("Capture Image")
+        self.capture_image_button.setCheckable(False)
+        self.capture_image_button.clicked.connect(self.capture_image_handler)
+        self.capture_image_button.setEnabled(False)
+
+        # Capture image textbox for image name
+        self.image_name_text = QLabel("Enter the Image Name:")
+        self.image_name_box = QLineEdit()
 
     def init_layouts(self):
         # Set the Layout
@@ -159,6 +167,7 @@ class MainWindow(QMainWindow):
         user_selector_layout = QVBoxLayout()
         user_btn_layout = QHBoxLayout()
         new_scan_layout = QVBoxLayout()
+        image_name_layout = QHBoxLayout()
 
         # Main Layout
         main_layout.addWidget(self.title_label)
@@ -177,7 +186,10 @@ class MainWindow(QMainWindow):
         # New Scan Layout
         new_scan_layout.addWidget(self.video_label)
         new_scan_layout.setAlignment(self.video_label, Qt.AlignCenter)  # type: ignore
-        new_scan_layout.addWidget(self.record_toggle_button)
+        image_name_layout.addWidget(self.image_name_text)
+        image_name_layout.addWidget(self.image_name_box)
+        new_scan_layout.addLayout(image_name_layout)
+        new_scan_layout.addWidget(self.capture_image_button)
 
         new_scan_container = QWidget()
         new_scan_container.setLayout(new_scan_layout)
@@ -269,18 +281,16 @@ class MainWindow(QMainWindow):
             # Swap layouts
             self.stacked_layout.setCurrentIndex(1)
 
-    def record_toggle_handler(self, checked):
-        self.record_toggle_state = checked
-        if self.record_toggle_state:
-            self.record_toggle_button.setText("Stop Recording")
-        else:
-            self.record_toggle_button.setText("Start Recording")
+    def capture_image_handler(self, checked):
+        self.capture_image_button.setEnabled(False)
+        print("Capturing an Image!")
 
-        print(self.record_toggle_state)
+        image_name = self.image_name_box.text()
+        self.image_name_box.clear()
+        self.MOST_RECENT_IMAGE_SESSION = self.video_thread.init_capture_image(
+            image_name
+        )
 
-        self.video_thread.record_toggle()
-
-    # TODO determine why uncommenting returns error
     # @pyqtSlot(str)
     def error_video_handler(self, msg: str) -> None:
         print(msg)
@@ -291,8 +301,15 @@ class MainWindow(QMainWindow):
         self.video_label.setPixmap(qt_image)
 
     # @pyqtSlot(bool)
-    def enable_recording_toggle(self, toggle_state: bool) -> None:
-        self.record_toggle_button.setEnabled(toggle_state)
+    def enable_initial_capture_toggle(self, toggle_state: bool) -> None:
+        self.capture_image_button.setEnabled(toggle_state)
+
+    # @pyqtSlot(bool)
+    def completed_capture_handler(self, capture_status: bool) -> None:
+        # self.MOST_RECENT_IMAGE_SESSION
+
+        # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
+        self.capture_image_button.setEnabled(capture_status)
 
     def _convert_cv_to_qt(self, cv_img) -> QPixmap:
         """Convert from an opencv image to QPixmap"""

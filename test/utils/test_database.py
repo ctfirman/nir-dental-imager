@@ -59,20 +59,30 @@ def test_get_uuid_by_email_no_email_exists():
     assert uuid == None
 
 
-@patch("time.time", return_value=test_session_id)
+@patch("time.time", return_value=1)
 def test_insert_new_image_session(time_mock):
     session_id = test_db.insert_new_image_session(test_uuid)
 
-    assert session_id == test_session_id
+    assert session_id == 1 * 1000
+    time_mock.assert_called_once_with()
+
+
+@patch("time.time", return_value=2)
+def test_insert_new_image_session_with_name(time_mock):
+    session_id = test_db.insert_new_image_session(test_uuid, "test_image")
+
+    assert session_id == 2 * 1000
     time_mock.assert_called_once_with()
 
 
 def test_get_all_img_sessions_for_uuid():
     result = test_db.get_all_img_sessions_for_uuid(test_uuid)
 
-    for res in result:
-        assert res.session_id == test_session_id
+    for count, res in enumerate(result, 1):
+        assert res.session_id == count * 1000
         assert res.user_uuid == test_uuid
+
+        assert res.image_name in ["", "test_image"]
 
 
 def test_get_all_img_sessions_for_uuid_empty():
@@ -94,9 +104,11 @@ def test__get_users_all():
 def test__get_imgae_sessions_all():
     result = test_db._get_image_sessions_all()
 
-    for res in result:
-        assert res.session_id == test_session_id
+    for count, res in enumerate(result, 1):
+        assert res.session_id == count * 1000
         assert res.user_uuid == test_uuid
+
+        assert res.image_name in ["", "test_image"]
 
 
 @patch(
@@ -145,4 +157,4 @@ def test_check_set_filepath_doesnt_exist(
 def test_get_base_filepath():
     ret = test_db.get_base_filepath("test-uuid-get-base-filepath")
 
-    assert ret == os.path.abspath("tmp_vid/test-uuid-get-base-filepath/")
+    assert ret == os.path.abspath("nml_img/test-uuid-get-base-filepath/")

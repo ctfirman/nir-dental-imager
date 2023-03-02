@@ -3,6 +3,7 @@
 
 tmp_img/
 tmp_vid/
+nml_img/
 *.db
 
 # vscode
