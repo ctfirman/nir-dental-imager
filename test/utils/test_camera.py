@@ -38,9 +38,14 @@ mocked_video_not_opened.read.return_value = (False, None)
 @patch("src.utils.camera.VideoThread._save_image")
 @patch("src.utils.camera.VideoThread._video_close")
 @patch("cv2.rotate", return_value="Frame")
+@patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_not_opened)
 def test_VideoThread_run_not_opened(
-    VideoCapture_mock, cvtRotate_mock, video_close_mock, save_image_mock
+    VideoCapture_mock,
+    cvtColor_mock,
+    cvtRotate_mock,
+    video_close_mock,
+    save_image_mock,
 ):
     test_VideoThread._DATABASE = Mock()
     test_VideoThread._DATABASE.check_set_filepath
@@ -58,6 +63,7 @@ def test_VideoThread_run_not_opened(
 
     test_VideoThread._DATABASE.check_set_filepath.assert_not_called()
     cvtRotate_mock.assert_not_called()
+    cvtColor_mock.assert_not_called()
     test_VideoThread.change_image_signal.emit.assert_not_called()
     test_VideoThread.camera_available_signal.emit.assert_not_called()
     test_VideoThread.capture_complete_signal.emit.assert_not_called()
@@ -72,9 +78,10 @@ mocked_video_no_run_flag.read.return_value = (False, None)
 @patch("src.utils.camera.VideoThread._save_image")
 @patch("src.utils.camera.VideoThread._video_close")
 @patch("cv2.rotate", return_value="Frame")
+@patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_no_run_flag)
 def test_VideoThread_run_no_run_flag(
-    VideoCapture_mock, cvtRotate_mock, video_close_mock, save_image_mock
+    VideoCapture_mock, cvtColor_mock, cvtRotate_mock, video_close_mock, save_image_mock
 ):
     test_VideoThread.USER_UUID = "test-uuid-no-run-flag"
     test_VideoThread._DATABASE = Mock()
@@ -93,6 +100,7 @@ def test_VideoThread_run_no_run_flag(
     mocked_video_no_run_flag.isOpened.assert_called_once()
     mocked_video_no_run_flag.read.assert_not_called()
     cvtRotate_mock.assert_not_called()
+    cvtColor_mock.assert_not_called()
     test_VideoThread.change_image_signal.emit.assert_not_called()
     test_VideoThread.capture_complete_signal.emit.assert_not_called()
     test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
@@ -107,9 +115,10 @@ mocked_video_no_read.read.return_value = (False, None)
 @patch("src.utils.camera.VideoThread._save_image")
 @patch("src.utils.camera.VideoThread._video_close")
 @patch("cv2.rotate", return_value="Frame")
+@patch("cv2.cvtColor", return_value="Frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_no_read)
 def test_VideoThread_run_no_read(
-    VideoCapture_mock, cvtRotate_mock, video_close_mock, save_image_mock
+    VideoCapture_mock, cvtColor_mock, cvtRotate_mock, video_close_mock, save_image_mock
 ):
     test_VideoThread.USER_UUID = "test-uuid-no-read"
     test_VideoThread._DATABASE = Mock()
@@ -126,6 +135,8 @@ def test_VideoThread_run_no_read(
 
     mocked_video_no_read.read.assert_called_once()
     cvtRotate_mock.assert_not_called()
+    cvtColor_mock.assert_not_called()
+
     test_VideoThread.change_image_signal.emit.assert_not_called()
     test_VideoThread.capture_complete_signal.emit.assert_not_called()
     test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
@@ -143,9 +154,10 @@ mocked_video_valid_no_capture.read.side_effect = [(True, "Frame1"), (False, "Fra
 @patch("src.utils.camera.VideoThread._save_image")
 @patch("src.utils.camera.VideoThread._video_close")
 @patch("cv2.rotate", return_value="rotated_frame")
+@patch("cv2.cvtColor", return_value="color_rotated_frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_valid_no_capture)
 def test_VideoThread_run_valid_no_capture(
-    VideoCapture_mock, cvtRotate_mock, video_close_mock, save_image_mock
+    VideoCapture_mock, cvtColor_mock, cvtRotate_mock, video_close_mock, save_image_mock
 ):
     test_VideoThread.USER_UUID = "test-uuid-no-capture-flag"
     test_VideoThread._DATABASE = Mock()
@@ -163,7 +175,10 @@ def test_VideoThread_run_valid_no_capture(
 
     video_close_mock.assert_called_once_with()
     cvtRotate_mock.assert_called_once_with("Frame1", ANY)
-    test_VideoThread.change_image_signal.emit.assert_has_calls([call("rotated_frame")])
+    cvtColor_mock.assert_called_once_with("rotated_frame", ANY)
+    test_VideoThread.change_image_signal.emit.assert_has_calls(
+        [call("color_rotated_frame")]
+    )
     test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
     test_VideoThread.capture_complete_signal.emit.assert_not_called()
     save_image_mock.assert_not_called()
@@ -177,9 +192,10 @@ mocked_video_valid_with_capture.read.side_effect = [(True, "Frame3"), (False, "F
 @patch("src.utils.camera.VideoThread._save_image")
 @patch("src.utils.camera.VideoThread._video_close")
 @patch("cv2.rotate", return_value="rotated_frame")
+@patch("cv2.cvtColor", return_value="color_rotated_frame")
 @patch("cv2.VideoCapture", return_value=mocked_video_valid_with_capture)
 def test_VideoThread_run_valid_with_capture(
-    VideoCapture_mock, cvtRotate_mock, video_close_mock, save_image_mock
+    VideoCapture_mock, cvtColor_mock, cvtRotate_mock, video_close_mock, save_image_mock
 ):
     test_VideoThread.USER_UUID = "test-uuid-capture-flag"
     test_VideoThread._DATABASE = Mock()
@@ -197,11 +213,14 @@ def test_VideoThread_run_valid_with_capture(
         "test-uuid-capture-flag"
     )
     cvtRotate_mock.assert_called_once_with("Frame3", ANY)
-    test_VideoThread.change_image_signal.emit.assert_has_calls([call("rotated_frame")])
+    cvtColor_mock.assert_called_once_with("rotated_frame", ANY)
+    test_VideoThread.change_image_signal.emit.assert_has_calls(
+        [call("color_rotated_frame")]
+    )
     video_close_mock.assert_called_once_with()
     test_VideoThread.camera_available_signal.emit.assert_has_calls([call(True)])
     test_VideoThread.capture_complete_signal.emit.assert_called_once_with(True)
-    save_image_mock.assert_called_once_with("rotated_frame")
+    save_image_mock.assert_called_once_with("color_rotated_frame")
 
 
 @patch("cv2.destroyAllWindows")

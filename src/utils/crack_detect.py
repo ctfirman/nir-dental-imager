@@ -83,14 +83,22 @@ def get_data_for_ml(user_uuid, session_id):
     print(img_filepath)
 
     croped_img_arr = crop(img_src=img_filepath)
+    cv2.imshow("test", croped_img_arr)
+    cv2.waitKey(0)
     croped_img_arr = croped_img_arr.tolist()
-    print(type(croped_img_arr))
+    # print(croped_img_arr)
+    reduced_img = []
+    for row in croped_img_arr:
+        reduced = []
+        for col in row:
+            reduced.append(col[0])
+        reduced_img.append(reduced)
 
     json_obj = {}
     with open("ml.json", "r") as f:
         json_obj = json.load(f)
-        json_obj["trueCrack"].append(croped_img_arr)
-        # json_obj["falseCrack"].append(croped_img_arr)
+        json_obj["trueCrack"].append(reduced_img)
+        # json_obj["falseCrack"].append(reduced_img)
 
     # print(json_obj)
 
