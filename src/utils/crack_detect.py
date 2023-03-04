@@ -70,15 +70,18 @@ def crack_detect_method_1(session_id: str, save_img: bool = False) -> Tuple[Any,
 
 def crop(img_src: str):
     img = cv2.imread(img_src)
-    y=179 # Starting at top
+    y=245 # Starting at top
     x=187 # Starting at left
     h=158 # Height
     w=158 # Width
     crop = img[y:y+h, x:x+w]
-    # cv2.imshow('image', crop)
-    # cv2.waitKey(0)
-    cv2.imwrite(img_src, crop)
+    cv2.imshow('image', crop)
+    cv2.waitKey(0)
+    #cv2.imwrite(img_src, crop)
 
-#crop(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg")
-#crack_detect_method_1(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg", True)
+if __name__ == "__main__":
+    crop(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677959162446.jpg")
+    #crack_detect_method_1(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg", True)
+
+
 

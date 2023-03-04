@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
 # TODO import errors
 from utils.database import nmlDB
 from utils.camera import VideoThread
-from src.utils.crack_detect import crack_detect_method_1
+from utils.crack_detect import crack_detect_method_1
 
 
 class CreateNewUserDialog(QDialog):
