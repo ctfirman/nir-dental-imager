@@ -176,7 +176,9 @@ class nmlDB:
 
     def get_all_ml_data(self, classifier=None):
         if classifier:
-            results = self.session.query(MlData).filter(MlData.classifier == classifier)
+            results = (
+                self.session.query(MlData).filter(MlData.classifier == classifier).all()
+            )
         else:
             results = self.session.query(MlData).all()
         return results
