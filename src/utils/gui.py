@@ -23,8 +23,10 @@ from PyQt5.QtWidgets import (
     QGroupBox,
 )
 
+# TODO import errors
 from utils.database import nmlDB
 from utils.camera import VideoThread
+from src.utils.crack_detect import crack_detect_method_1
 
 
 class CreateNewUserDialog(QDialog):
@@ -307,6 +309,9 @@ class MainWindow(QMainWindow):
     # @pyqtSlot(bool)
     def completed_capture_handler(self, capture_status: bool) -> None:
         # self.MOST_RECENT_IMAGE_SESSION
+
+        # for crack detect, pass in LATEST_SESSION_ID
+        crack_detect.crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
 
         # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
         self.capture_image_button.setEnabled(capture_status)

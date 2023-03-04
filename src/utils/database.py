@@ -6,7 +6,10 @@ from typing import List, Optional
 from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-from utils.exceptions import UserAlreadyCreated, UserNotFound
+#from utils.exceptions import UserAlreadyCreated, UserNotFound
+import utils.exceptions
+
+from src.utils import exceptions
 
 Base = declarative_base()
 
@@ -84,7 +87,7 @@ class nmlDB:
     def insert_new_user(self, user_email: str, first_name: str, last_name: str) -> str:
         # If a user already exists, exit and raise error
         if self.get_uuid_by_email(user_email):
-            raise UserAlreadyCreated
+            raise exceptions.UserAlreadyCreated
 
         user_uuid = str(uuid.uuid4())
         user = User(user_uuid, user_email, first_name.strip(), last_name.strip())
@@ -151,7 +154,7 @@ if __name__ == "__main__":
 
         new_user_uuid = user_db.insert_new_user("email.test@email.com", "user", "test")
         print(f"New user uuid = {new_user_uuid}, type = {type(new_user_uuid)}")
-    except UserAlreadyCreated:
+    except exceptions.UserAlreadyCreated:
         print("These Users already have an account!")
 
     user_db._get_users_all()

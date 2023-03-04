@@ -114,6 +114,7 @@ class VideoThread(QThread):
 
             # Our operations on the frame come here
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # Save the frame to the video
             # if self._record_flag:
