@@ -76,17 +76,15 @@ def crack_detect_method_1(
     return src, result
 
 
-def get_data_for_ml(user_uuid, session_id):
+def get_data_for_ml(user_uuid, session_id, db: nmlDB):
     img_filepath = os.path.join(
         nmlDB.get_base_filepath(user_uuid), "raw", f"{session_id}.jpg"
     )
     print(img_filepath)
 
     croped_img_arr = crop(img_src=img_filepath)
-    cv2.imshow("test", croped_img_arr)
-    cv2.waitKey(0)
-    croped_img_arr = croped_img_arr.tolist()
-    # print(croped_img_arr)
+    # cv2.imshow("test", croped_img_arr)
+    # cv2.waitKey(0)
     reduced_img = []
     for row in croped_img_arr:
         reduced = []
@@ -94,16 +92,25 @@ def get_data_for_ml(user_uuid, session_id):
             reduced.append(col[0])
         reduced_img.append(reduced)
 
-    json_obj = {}
-    with open("ml.json", "r") as f:
-        json_obj = json.load(f)
-        json_obj["trueCrack"].append(reduced_img)
-        # json_obj["falseCrack"].append(reduced_img)
+    reduced_img = np.array(reduced_img)
+    reduced_img = reduced_img.tobytes()
 
-    # print(json_obj)
+    db.insert_ml_data(reduced_img, 1)
+    db.get_ml_data_len()
 
-    with open("ml.json", "w") as f:
-        json_obj = json.dump(json_obj, f, indent=4)
+    first_entry = np.frombuffer(db.get_first_ml_data().img, dtype=np.uint8)
+    print(first_entry.shape)
+
+    # json_obj = {}
+    # with open("ml.json", "r") as f:
+    #     json_obj = json.load(f)
+    #     json_obj["trueCrack"].append(reduced_img)
+    #     # json_obj["falseCrack"].append(reduced_img)
+
+    # # print(json_obj)
+
+    # with open("ml.json", "w") as f:
+    #     json_obj = json.dump(json_obj, f, indent=4)
 
 
 def crop(img_src: str):

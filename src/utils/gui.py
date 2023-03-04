@@ -312,7 +312,7 @@ class MainWindow(QMainWindow):
 
         # for crack detect, pass in LATEST_SESSION_ID
         # crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
-        get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION)
+        get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION, self.database)
 
         # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
         self.capture_image_button.setEnabled(capture_status)

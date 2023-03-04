@@ -3,7 +3,15 @@ import uuid
 import time
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
+from sqlalchemy import (
+    create_engine,
+    ForeignKey,
+    Column,
+    String,
+    Integer,
+    DateTime,
+    LargeBinary,
+)
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
 from utils.exceptions import UserAlreadyCreated, UserNotFound
@@ -61,6 +69,22 @@ class ImageSession(Base):
 
     def __repr__(self):
         return f"ImageSession=({self.session_id}, {self.image_name}, {self.date}, {self.user_uuid}))"
+
+
+class MlData(Base):
+    __tablename__ = "ml_data_table"
+
+    entry_id = Column("entry_id", Integer, primary_key=True, unique=True)
+    classifier = Column("classifier", Integer)
+    img = Column("img", LargeBinary)
+
+    def __init__(self, entry_id, classifier, img) -> None:
+        self.entry_id = entry_id
+        self.classifier = classifier
+        self.img = img
+
+    def __repr__(self) -> str:
+        return f"MlData=({self.entry_id}, {self.classifier}, {self.img})"
 
 
 # ------------------- Wrapper to use DB -------------------
@@ -141,6 +165,27 @@ class nmlDB:
         if not os.path.isdir(os.path.join(base_filepath, "raw")):
             os.makedirs(os.path.join(base_filepath, "raw"))
             os.makedirs(os.path.join(base_filepath, "complete"))
+
+    def insert_ml_data(self, img, classifier):
+        # TODO: May Need to reword session id to be more unique
+        entry_id = int(time.time() * 1000)
+        img = bytes(img)
+        ml_data = MlData(entry_id, classifier, img)
+        self.session.add(ml_data)
+        self.session.commit()
+
+    def get_all_ml_data(self, classifier=None):
+        if classifier:
+            results = self.session.query(MlData).filter(MlData.classifier == classifier)
+        else:
+            results = self.session.query(MlData).all()
+        return results
+
+    def get_first_ml_data(self):
+        return self.session.query(MlData).first()
+
+    def get_ml_data_len(self):
+        print(self.session.query(MlData).count())
 
 
 if __name__ == "__main__":
