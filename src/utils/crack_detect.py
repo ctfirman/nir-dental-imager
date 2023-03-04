@@ -1,14 +1,19 @@
 import os
 from typing import Tuple, Any
+import json
 
 import cv2
 import numpy as np
+from utils.database import nmlDB
 
 
 # input is image from the raw capture
 # output is a processed image in the complete folder
 
-def crack_detect_method_1(session_id: str, save_img: bool = False) -> Tuple[Any, Any]:
+
+def crack_detect_method_1(
+    session_id: str, user_uuid: str, save_img: bool = False
+) -> Tuple[Any, Any]:
     """
     Algo from https://github.com/shomnathsomu/crack-detection-opencv
     1. read image
@@ -35,10 +40,10 @@ def crack_detect_method_1(session_id: str, save_img: bool = False) -> Tuple[Any,
     img_log = np.array(img_log, dtype=np.uint8)
 
     # Image smoothing: bilateral filter
-    bilateral = cv2.bilateralFilter(img_log, 15, 30, 30)   # 45, 22, 22
+    bilateral = cv2.bilateralFilter(img_log, 15, 30, 30)  # 45, 22, 22
 
     # Run Canny Edge Detector
-    edges = cv2.Canny(bilateral, 20, 20)   # 20, 20
+    edges = cv2.Canny(bilateral, 20, 20)  # 20, 20
 
     # Morphological Closing Operator
     kernel = np.ones((5, 5), np.uint8)
@@ -58,30 +63,57 @@ def crack_detect_method_1(session_id: str, save_img: bool = False) -> Tuple[Any,
         # final_img_path = os.path.abspath(
         #     f"test-images\concrete\completed\{img_file_name}"
         # )
-        #final_img_path = os.chdir("/complete/" + img_file_name)
-        final_img_path = os.path.abspath(os.path.join(os.path.dirname(img_src), "..", "complete/" + img_file_name))
+        # final_img_path = os.chdir("/complete/" + img_file_name)
+        final_img_path = os.path.abspath(
+            os.path.join(os.path.dirname(img_src), "..", "complete/" + img_file_name)
+        )
 
-        #print(final_img_path)
+        # print(final_img_path)
         cv2.imwrite(final_img_path, result)
 
     cv2.destroyAllWindows()
 
     return src, result
 
+
+def get_data_for_ml(user_uuid, session_id):
+    img_filepath = os.path.join(
+        nmlDB.get_base_filepath(user_uuid), "raw", f"{session_id}.jpg"
+    )
+    print(img_filepath)
+
+    croped_img_arr = crop(img_src=img_filepath)
+    croped_img_arr = croped_img_arr.tolist()
+    print(type(croped_img_arr))
+
+    json_obj = {}
+    with open("ml.json", "r") as f:
+        json_obj = json.load(f)
+        json_obj["trueCrack"].append(croped_img_arr)
+        # json_obj["falseCrack"].append(croped_img_arr)
+
+    # print(json_obj)
+
+    with open("ml.json", "w") as f:
+        json_obj = json.dump(json_obj, f, indent=4)
+
+
 def crop(img_src: str):
     img = cv2.imread(img_src)
-    y=245 # Starting at top
-    x=187 # Starting at left
-    h=158 # Height
-    w=158 # Width
-    crop = img[y:y+h, x:x+w]
-    cv2.imshow('image', crop)
-    cv2.waitKey(0)
-    #cv2.imwrite(img_src, crop)
+    y = 245  # Starting at top
+    x = 187  # Starting at left
+    h = 158  # Height
+    w = 158  # Width
+    crop = img[y : y + h, x : x + w]
+    # cv2.imshow("image", crop)
+    # cv2.waitKey(0)
+    # cv2.imwrite(img_src, crop)
+    # print(crop)
+    return crop
+
 
 if __name__ == "__main__":
-    crop(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677959162446.jpg")
-    #crack_detect_method_1(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg", True)
-
-
-
+    crop(
+        r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677959162446.jpg"
+    )
+    # crack_detect_method_1(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg", True)
