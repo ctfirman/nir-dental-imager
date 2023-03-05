@@ -5,6 +5,7 @@ tmp_img/
 tmp_vid/
 nml_img/
 *.db
+*.npy
 
 # vscode
 .vscode
