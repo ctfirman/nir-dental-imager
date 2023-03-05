@@ -2,8 +2,16 @@ import os
 import uuid
 import time
 from datetime import datetime
-from typing import List, Optional
-from sqlalchemy import create_engine, ForeignKey, Column, String, Integer, DateTime
+from typing import List, Optional, Union, Literal
+from sqlalchemy import (
+    create_engine,
+    ForeignKey,
+    Column,
+    String,
+    Integer,
+    DateTime,
+    LargeBinary,
+)
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
 from utils.exceptions import UserAlreadyCreated, UserNotFound
@@ -46,19 +54,37 @@ class ImageSession(Base):
 
     session_id = Column("session_id", Integer, primary_key=True, unique=True)
     date = Column("date", DateTime, default=datetime.now())
+    image_name = Column("image_name", String, default="", unique=False)
     user_uuid = Column(
         String,
         ForeignKey("users_table.user_uuid"),
     )
     user = relationship("User", back_populates="image_sessions")
 
-    def __init__(self, session_id, date, user_uuid) -> None:
+    def __init__(self, session_id, date, user_uuid, image_name="") -> None:
         self.session_id = session_id
         self.user_uuid = user_uuid
         self.date = date
+        self.image_name = image_name
 
     def __repr__(self):
-        return f"ImageSession=({self.session_id}, {self.date}, {self.user_uuid}))"
+        return f"ImageSession=({self.session_id}, {self.image_name}, {self.date}, {self.user_uuid}))"
+
+
+class MlData(Base):
+    __tablename__ = "ml_data_table"
+
+    entry_id = Column("entry_id", Integer, primary_key=True, unique=True)
+    classifier = Column("classifier", Integer)
+    img = Column("img", LargeBinary)
+
+    def __init__(self, entry_id, classifier, img) -> None:
+        self.entry_id = entry_id
+        self.classifier = classifier
+        self.img = img
+
+    def __repr__(self) -> str:
+        return f"MlData=({self.entry_id}, {self.classifier}, {self.img})"
 
 
 # ------------------- Wrapper to use DB -------------------
@@ -111,10 +137,10 @@ class nmlDB:
         else:
             return None
 
-    def insert_new_image_session(self, uuid: str) -> int:
+    def insert_new_image_session(self, uuid: str, image_name: str = "") -> int:
         # TODO: May Need to reword session id to be more unique
-        session_id = int(time.time())
-        img_session = ImageSession(session_id, datetime.now(), uuid)
+        session_id = int(time.time() * 1000)
+        img_session = ImageSession(session_id, datetime.now(), uuid, image_name)
         self.session.add(img_session)
         self.session.commit()
 
@@ -131,7 +157,7 @@ class nmlDB:
 
     @classmethod
     def get_base_filepath(cls, user_uuid: str) -> str:
-        return os.path.abspath(f"tmp_vid/{user_uuid}/")
+        return os.path.abspath(f"nml_img/{user_uuid}/")
 
     @classmethod
     def check_set_filepath(cls, user_uuid: str) -> None:
@@ -139,6 +165,36 @@ class nmlDB:
         if not os.path.isdir(os.path.join(base_filepath, "raw")):
             os.makedirs(os.path.join(base_filepath, "raw"))
             os.makedirs(os.path.join(base_filepath, "complete"))
+
+    def insert_ml_data(self, img, classifier):
+        # TODO: May Need to reword session id to be more unique
+        entry_id = int(time.time() * 1000)
+        img = bytes(img)
+        ml_data = MlData(entry_id, classifier, img)
+        self.session.add(ml_data)
+        self.session.commit()
+
+    def get_all_ml_data(
+        self,
+        classifier: Union[
+            Literal["ALL"], Literal["CRACK"], Literal["NO_CRACK"]
+        ] = "ALL",
+    ):
+        if classifier == "CRACK":
+            results = self.session.query(MlData).filter(MlData.classifier == 1).all()
+        elif classifier == "NO_CRACK":
+            results = self.session.query(MlData).filter(MlData.classifier == 0).all()
+        else:
+            results = self.session.query(MlData).all()
+        return results
+
+    def get_first_ml_data(self):
+        return self.session.query(MlData).first()
+
+    def get_ml_data_len(self):
+        ml_count = self.session.query(MlData).count()
+        print(ml_count)
+        return ml_count
 
 
 if __name__ == "__main__":

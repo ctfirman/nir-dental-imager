@@ -1,11 +1,19 @@
 import os
 from typing import Tuple, Any
+import json
 
 import cv2
 import numpy as np
+from utils.database import nmlDB
 
 
-def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, Any]:
+# input is image from the raw capture
+# output is a processed image in the complete folder
+
+
+def crack_detect_method_1(
+    session_id: str, user_uuid: str, save_img: bool = False
+) -> Tuple[Any, Any]:
     """
     Algo from https://github.com/shomnathsomu/crack-detection-opencv
     1. read image
@@ -17,6 +25,8 @@ def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, An
         - Morphological closing operator
         - Feature extraction
     """
+    # Get absolute path of session_id, which is the image
+    img_src = os.path.abspath(session_id)
     print(img_src)
 
     src = cv2.imread(img_src)
@@ -30,10 +40,10 @@ def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, An
     img_log = np.array(img_log, dtype=np.uint8)
 
     # Image smoothing: bilateral filter
-    bilateral = cv2.bilateralFilter(img_log, 5, 10, 10)
+    bilateral = cv2.bilateralFilter(img_log, 15, 30, 30)  # 45, 22, 22
 
     # Run Canny Edge Detector
-    edges = cv2.Canny(bilateral, 25, 50)
+    edges = cv2.Canny(bilateral, 20, 20)  # 20, 20
 
     # Morphological Closing Operator
     kernel = np.ones((5, 5), np.uint8)
@@ -42,7 +52,7 @@ def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, An
     # Create feature detecting method
     # sift = cv2.xfeatures2d.SIFT_create()
     # surf = cv2.xfeatures2d.SURF_create()
-    orb = cv2.ORB_create(nfeatures=1500)
+    orb = cv2.ORB_create(nfeatures=2)
 
     # Make featured Image
     keypoints, descriptors = orb.detectAndCompute(closing, None)
@@ -50,11 +60,75 @@ def crack_detect_method_1(img_src: str, save_img: bool = False) -> Tuple[Any, An
 
     if save_img:
         img_file_name = os.path.basename(img_src)
+        # final_img_path = os.path.abspath(
+        #     f"test-images\concrete\completed\{img_file_name}"
+        # )
+        # final_img_path = os.chdir("/complete/" + img_file_name)
         final_img_path = os.path.abspath(
-            f"test-images/concrete/completed/{img_file_name}"
+            os.path.join(os.path.dirname(img_src), "..", "complete/" + img_file_name)
         )
+
+        # print(final_img_path)
         cv2.imwrite(final_img_path, result)
 
     cv2.destroyAllWindows()
 
     return src, result
+
+
+def get_data_for_ml(user_uuid, session_id, db: nmlDB):
+    img_filepath = os.path.join(
+        nmlDB.get_base_filepath(user_uuid), "raw", f"{session_id}.jpg"
+    )
+    print(img_filepath)
+
+    croped_img_arr = crop(img_src=img_filepath)
+    # cv2.imshow("test", croped_img_arr)
+    # cv2.waitKey(0)
+    reduced_img = []
+    for row in croped_img_arr:
+        reduced = []
+        for col in row:
+            reduced.append(col[0])
+        reduced_img.append(reduced)
+
+    reduced_img = np.array(reduced_img)
+    reduced_img = reduced_img.tobytes()
+
+    db.insert_ml_data(reduced_img, 1)
+    db.get_ml_data_len()
+
+    first_entry = np.frombuffer(db.get_first_ml_data().img, dtype=np.uint8)
+    print(first_entry.shape)
+
+    # json_obj = {}
+    # with open("ml.json", "r") as f:
+    #     json_obj = json.load(f)
+    #     json_obj["trueCrack"].append(reduced_img)
+    #     # json_obj["falseCrack"].append(reduced_img)
+
+    # # print(json_obj)
+
+    # with open("ml.json", "w") as f:
+    #     json_obj = json.dump(json_obj, f, indent=4)
+
+
+def crop(img_src: str):
+    img = cv2.imread(img_src)
+    y = 245  # Starting at top
+    x = 187  # Starting at left
+    h = 158  # Height
+    w = 158  # Width
+    crop = img[y : y + h, x : x + w]
+    # cv2.imshow("image", crop)
+    # cv2.waitKey(0)
+    # cv2.imwrite(img_src, crop)
+    # print(crop)
+    return crop
+
+
+if __name__ == "__main__":
+    crop(
+        r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677959162446.jpg"
+    )
+    # crack_detect_method_1(r"C:\Users\TirthPatel\Desktop\Tirth\NMLai\src\nml_img\eae2d22d-eb2c-46e5-8d03-5f29c10d9a2b\raw\1677958109315.jpg", True)
