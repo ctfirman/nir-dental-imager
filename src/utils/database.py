@@ -2,7 +2,7 @@ import os
 import uuid
 import time
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union, Literal
 from sqlalchemy import (
     create_engine,
     ForeignKey,
@@ -174,11 +174,16 @@ class nmlDB:
         self.session.add(ml_data)
         self.session.commit()
 
-    def get_all_ml_data(self, classifier=None):
-        if classifier:
-            results = (
-                self.session.query(MlData).filter(MlData.classifier == classifier).all()
-            )
+    def get_all_ml_data(
+        self,
+        classifier: Union[
+            Literal["ALL"], Literal["CRACK"], Literal["NO_CRACK"]
+        ] = "ALL",
+    ):
+        if classifier == "CRACK":
+            results = self.session.query(MlData).filter(MlData.classifier == 1).all()
+        elif classifier == "NO_CRACK":
+            results = self.session.query(MlData).filter(MlData.classifier == 0).all()
         else:
             results = self.session.query(MlData).all()
         return results
@@ -187,7 +192,9 @@ class nmlDB:
         return self.session.query(MlData).first()
 
     def get_ml_data_len(self):
-        print(self.session.query(MlData).count())
+        ml_count = self.session.query(MlData).count()
+        print(ml_count)
+        return ml_count
 
 
 if __name__ == "__main__":

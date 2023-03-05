@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch, Mock, MagicMock, ANY, call
 
 from datetime import datetime
+import numpy as np
 
 from src.utils.database import nmlDB, User, ImageSession
 from src.utils.exceptions import UserAlreadyCreated
@@ -158,3 +159,51 @@ def test_get_base_filepath():
     ret = test_db.get_base_filepath("test-uuid-get-base-filepath")
 
     assert ret == os.path.abspath("nml_img/test-uuid-get-base-filepath/")
+
+
+ml_img_0 = np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
+ml_img_1 = 2 * np.arange(1, 10, dtype=np.uint8).reshape(3, 3)
+
+
+def test_insert_ml_data():
+    test_db.insert_ml_data(ml_img_0.tobytes(), 0)
+    test_db.insert_ml_data(ml_img_1.tobytes(), 1)
+
+
+def test_get_ml_data_len():
+    ret = test_db.get_ml_data_len()
+    assert ret == 2
+
+
+def test_get_first_ml_data():
+    ret = test_db.get_first_ml_data()
+    after_img = np.frombuffer(ret.img, dtype=np.uint8)
+    assert ret.classifier == 0
+    assert np.array_equal(after_img, ml_img_0.flatten())
+
+
+def test_get_all_ml_data_no_class():
+    ret = test_db.get_all_ml_data()
+    for count, entry in enumerate(ret):
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        assert entry.classifier == count
+        if count == 0:
+            assert np.array_equal(after_img, ml_img_0.flatten())
+        else:
+            assert np.array_equal(after_img, ml_img_1.flatten())
+
+
+def test_get_all_ml_data_crack_class():
+    ret = test_db.get_all_ml_data("CRACK")
+    for entry in ret:
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        assert entry.classifier == 1
+        assert np.array_equal(after_img, ml_img_1.flatten())
+
+
+def test_get_all_ml_data_no_crack_class():
+    ret = test_db.get_all_ml_data("NO_CRACK")
+    for entry in ret:
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        assert entry.classifier == 0
+        assert np.array_equal(after_img, ml_img_0.flatten())
