@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 
 from src.utils.database import nmlDB, User, ImageSession
-from src.utils.exceptions import UserAlreadyCreated
+from src.utils.exceptions import UserAlreadyCreated, ImageSessionNotFound
 
 test_db = nmlDB(":memory:")
 test_email = "test.email@email.com"
@@ -82,6 +82,7 @@ def test_get_all_img_sessions_for_uuid():
     for count, res in enumerate(result, 1):
         assert res.session_id == count * 1000
         assert res.user_uuid == test_uuid
+        assert res.crack_detected == -1
 
         assert res.image_name in ["", "test_image"]
 
@@ -108,8 +109,39 @@ def test__get_imgae_sessions_all():
     for count, res in enumerate(result, 1):
         assert res.session_id == count * 1000
         assert res.user_uuid == test_uuid
+        assert res.crack_detected == -1
 
         assert res.image_name in ["", "test_image"]
+
+
+def test_update_img_session_crack_detection_existing():
+    test_crack_detect_uuid = test_db.insert_new_user(
+        "test_crack_detect_email", "fname", "lname"
+    )
+
+    session_id = test_db.insert_new_image_session(
+        test_crack_detect_uuid, "test_crack_detect_name"
+    )
+    result = test_db.get_all_img_sessions_for_uuid(test_crack_detect_uuid)
+    assert len(result) == 1
+    assert result[0].crack_detected == -1
+
+    test_db.update_img_session_crack_detection(session_id, 0)
+    result = test_db.get_all_img_sessions_for_uuid(test_crack_detect_uuid)
+    assert len(result) == 1
+    assert result[0].crack_detected == 0
+
+    test_db.update_img_session_crack_detection(session_id, 1)
+    result = test_db.get_all_img_sessions_for_uuid(test_crack_detect_uuid)
+    assert len(result) == 1
+    assert result[0].crack_detected == 1
+
+
+def test_update_img_session_crack_detection_not_existing():
+    with pytest.raises(Exception) as e:
+        test_db.update_img_session_crack_detection(-1000, 0)
+
+    assert "This image session was not found" == str(e.value)
 
 
 @patch(
@@ -177,7 +209,8 @@ def test_get_ml_data_len():
 
 def test_get_first_ml_data():
     ret = test_db.get_first_ml_data()
-    after_img = np.frombuffer(ret.img, dtype=np.uint8)
+    assert ret is not None
+    after_img = np.frombuffer(ret.img, dtype=np.uint8)  # type: ignore
     assert ret.classifier == 0
     assert np.array_equal(after_img, ml_img_0.flatten())
 
@@ -185,7 +218,7 @@ def test_get_first_ml_data():
 def test_get_all_ml_data_no_class():
     ret = test_db.get_all_ml_data()
     for count, entry in enumerate(ret):
-        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)  # type: ignore
         assert entry.classifier == count
         if count == 0:
             assert np.array_equal(after_img, ml_img_0.flatten())
@@ -196,7 +229,7 @@ def test_get_all_ml_data_no_class():
 def test_get_all_ml_data_crack_class():
     ret = test_db.get_all_ml_data("CRACK")
     for entry in ret:
-        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)  # type: ignore
         assert entry.classifier == 1
         assert np.array_equal(after_img, ml_img_1.flatten())
 
@@ -204,6 +237,6 @@ def test_get_all_ml_data_crack_class():
 def test_get_all_ml_data_no_crack_class():
     ret = test_db.get_all_ml_data("NO_CRACK")
     for entry in ret:
-        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)  # type: ignore
         assert entry.classifier == 0
         assert np.array_equal(after_img, ml_img_0.flatten())

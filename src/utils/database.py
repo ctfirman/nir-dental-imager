@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
-from utils.exceptions import UserAlreadyCreated, UserNotFound
+from utils.exceptions import UserAlreadyCreated, UserNotFound, ImageSessionNotFound
 
 Base = declarative_base()
 
@@ -55,20 +55,24 @@ class ImageSession(Base):
     session_id = Column("session_id", Integer, primary_key=True, unique=True)
     date = Column("date", DateTime, default=datetime.now())
     image_name = Column("image_name", String, default="", unique=False)
+    crack_detected = Column("crack_detected", Integer, unique=False)
     user_uuid = Column(
         String,
         ForeignKey("users_table.user_uuid"),
     )
     user = relationship("User", back_populates="image_sessions")
 
-    def __init__(self, session_id, date, user_uuid, image_name="") -> None:
+    def __init__(
+        self, session_id, date, user_uuid, image_name="", crack_detected=-1
+    ) -> None:
         self.session_id = session_id
         self.user_uuid = user_uuid
         self.date = date
         self.image_name = image_name
+        self.crack_detected = crack_detected
 
     def __repr__(self):
-        return f"ImageSession=({self.session_id}, {self.image_name}, {self.date}, {self.user_uuid}))"
+        return f"ImageSession=({self.session_id}, {self.image_name}, {self.date}, {self.user_uuid}, {self.crack_detected}))"
 
 
 class MlData(Base):
@@ -138,7 +142,6 @@ class nmlDB:
             return None
 
     def insert_new_image_session(self, uuid: str, image_name: str = "") -> int:
-        # TODO: May Need to reword session id to be more unique
         session_id = int(time.time() * 1000)
         img_session = ImageSession(session_id, datetime.now(), uuid, image_name)
         self.session.add(img_session)
@@ -154,6 +157,20 @@ class nmlDB:
             .all()
         )
         return results
+
+    def update_img_session_crack_detection(
+        self, img_session_id: int, crack_status: Union[Literal[0], Literal[1]]
+    ) -> None:
+        img_sess_res = (
+            self.session.query(ImageSession)
+            .filter(ImageSession.session_id == img_session_id)
+            .first()
+        )
+        if not img_sess_res:
+            raise ImageSessionNotFound("This image session was not found")
+
+        img_sess_res.crack_detected = crack_status
+        self.session.commit()
 
     @classmethod
     def get_base_filepath(cls, user_uuid: str) -> str:
