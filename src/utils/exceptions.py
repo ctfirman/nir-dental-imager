@@ -8,3 +8,7 @@ class UserAlreadyCreated(Exception):
 
 class UserNotFound(Exception):
     pass
+
+
+class ImageSessionNotFound(Exception):
+    pass

@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 from PyQt5.QtGui import QColor, QPixmap, QImage
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import QSize, Qt, QThreadPool
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
 # TODO import errors
 from utils.database import nmlDB
 from utils.camera import VideoThread
-from utils.crack_detect import crack_detect_method_1, get_data_for_ml
+from utils.crack_detect import crack_detect_method_1, NMLModel, CrackDetectHighlight
 
 
 class CreateNewUserDialog(QDialog):
@@ -97,6 +97,8 @@ class MainWindow(QMainWindow):
         # Create all Widgets and layouts
         self.init_widgets()
         self.init_layouts()
+
+        self.crack_detection_thread_pool = QThreadPool()
 
     def init_widgets(self):
         self.user_selector = QListWidget()
@@ -308,14 +310,30 @@ class MainWindow(QMainWindow):
 
     # @pyqtSlot(bool)
     def completed_capture_handler(self, capture_status: bool) -> None:
+        """Handler after an image is captured"""
         # self.MOST_RECENT_IMAGE_SESSION
+
+        if self.USER_UUID:
+            image_crack_detection_worker = CrackDetectHighlight(
+                self.database, self.MOST_RECENT_IMAGE_SESSION, self.USER_UUID
+            )
+            image_crack_detection_worker.signals.finished.connect(
+                self.update_past_scans_list
+            )
+            self.crack_detection_thread_pool.start(image_crack_detection_worker)
 
         # for crack detect, pass in LATEST_SESSION_ID
         # crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
-        get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION, self.database)
+        # NMLModel.get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION, self.database)
 
         # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
         self.capture_image_button.setEnabled(capture_status)
+
+    # @pyqtSlot(int)
+    def update_past_scans_list(self, image_session_id):
+        """Updates the list of past scans after an image session computation is completed"""
+        print("Crack detection is done")
+        pass
 
     def _convert_cv_to_qt(self, cv_img) -> QPixmap:
         """Convert from an opencv image to QPixmap"""
