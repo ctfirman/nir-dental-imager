@@ -16,15 +16,29 @@ class NMLModel:
         self.crack_detect_model = keras.models.load_model(model_name)
         if not self.crack_detect_model:
             raise Exception("Model not found")
-        print(self.crack_detect_model.summary())
+        # print(self.crack_detect_model.summary())
 
-    def predict(self, img) -> Union[Literal[0], Literal[1]]:
-        cropped_img = self.ml_img_crop(img)
-        if cropped_img:
+    def predict(self, img_path: str) -> Union[Literal[0], Literal[1]]:
+        cropped_img = self.ml_img_crop(img_path)
+
+        # flatten and reduce img to pass into model
+        reduced_img = []
+        for row in cropped_img:
+            reduced = []
+            for col in row:
+                reduced.append(col[0])
+            reduced_img.append(reduced)
+        reduced_img = np.array(reduced_img).flatten()
+        reduced_img = np.array([reduced_img])
+
+        prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
+
+        print(prediction)
+        print(np.argmax(prediction))
+        if np.argmax(prediction):
             return 1
         else:
             return 0
-        # TODO Update record in db
 
     @classmethod
     def ml_img_crop(cls, img_path: str) -> np.ndarray:
@@ -66,24 +80,41 @@ class CrackDetectHighlightSignals(QObject):
 
 
 class CrackDetectHighlight(QRunnable):
-    def __init__(self, database: nmlDB, img_session_id: int):
+    def __init__(self, database: nmlDB, img_session_id: int, user_uuid: str):
         super().__init__()
         self._database = database
         self.image_session_id = img_session_id
+        self.user_uuid = user_uuid
         self.signals = CrackDetectHighlightSignals()
 
     @pyqtSlot()
     def run(self):
         # TODO: determine if we can pass and share the model between worker threads or each thread loads their own
-        # load model
-        self.model = NMLModel("nmlModelV1", self._database)
-        # predict the crack
+        raw_img_path = os.path.join(
+            self._database.get_base_filepath(self.user_uuid),
+            "raw",
+            f"{self.image_session_id}.jpg",
+        )
+        completed_img_path = os.path.join(
+            self._database.get_base_filepath(self.user_uuid),
+            "complete",
+            f"{self.image_session_id}.jpg",
+        )
 
+        # load model
+        self.model = NMLModel("nmlModelV2", self._database)
+        # predict the crack
+        ml_result = self.model.predict(raw_img_path)
         # Update the database
-        # TODO pass in the value from the prediction
-        self._database.update_img_session_crack_detection(self.image_session_id, 0)
+        self._database.update_img_session_crack_detection(
+            self.image_session_id, ml_result
+        )
 
         # TODO TIRTH CODE TO RUN CRACK HIGHLIGHT
+        if ml_result:
+            print("Crack Detected")
+        else:
+            print("No Crack")
 
         # emit the finished signal to update image selector list
         self.signals.finished.emit(self.image_session_id)

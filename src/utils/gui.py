@@ -313,13 +313,14 @@ class MainWindow(QMainWindow):
         """Handler after an image is captured"""
         # self.MOST_RECENT_IMAGE_SESSION
 
-        image_crack_detection_worker = CrackDetectHighlight(
-            self.database, self.MOST_RECENT_IMAGE_SESSION
-        )
-        image_crack_detection_worker.signals.finished.connect(
-            self.update_past_scans_list
-        )
-        self.crack_detection_thread_pool.start(image_crack_detection_worker)
+        if self.USER_UUID:
+            image_crack_detection_worker = CrackDetectHighlight(
+                self.database, self.MOST_RECENT_IMAGE_SESSION, self.USER_UUID
+            )
+            image_crack_detection_worker.signals.finished.connect(
+                self.update_past_scans_list
+            )
+            self.crack_detection_thread_pool.start(image_crack_detection_worker)
 
         # for crack detect, pass in LATEST_SESSION_ID
         # crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
