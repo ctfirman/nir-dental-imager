@@ -2,7 +2,7 @@ import sys
 import cv2
 import numpy as np
 
-from PyQt5.QtGui import QColor, QPixmap, QImage
+from PyQt5.QtGui import QColor, QPixmap, QImage, QIcon
 from PyQt5.QtCore import QSize, Qt, QThreadPool
 from PyQt5.QtWidgets import (
     QApplication,
@@ -91,8 +91,9 @@ class MainWindow(QMainWindow):
         self.MOST_RECENT_IMAGE_SESSION = 0
 
         # Window Setup
-        self.setWindowTitle("nml.ai")
+        self.setWindowTitle("NML.ai")
         self.setFixedSize(QSize(1080, 720))
+        self.setWindowIcon(QIcon("assets/logo.png"))
 
         # Create all Widgets and layouts
         self.init_widgets()
@@ -115,7 +116,7 @@ class MainWindow(QMainWindow):
         self.add_new_user_btn.clicked.connect(self.create_new_user)
         self.add_new_user_btn.setStyleSheet(
             "border-radius: 10px; "
-            'font: 25 13pt "Bahnschrift Light"; '
+            'font: 25 13pt "Fira Code"; '
             "background-color: rgb(209, 170, 170)"
         )
 
@@ -123,13 +124,13 @@ class MainWindow(QMainWindow):
         self.set_user_btn.clicked.connect(self.set_user)
         self.set_user_btn.setStyleSheet(
             "border-radius: 10px; "
-            'font: 25 13pt "Bahnschrift Light"; '
+            'font: 25 13pt "Fira Code"; '
             "background-color: rgb(209, 170, 170)"
         )
 
         self.title_label = QLabel("NML.ai", self)
         self.title_label.setStyleSheet(
-            'font: 25 58pt "Bahnschrift Light";'
+            'font: 25 58pt "Fira Code";'
             " color: rgb(79, 79, 79);"
             "background-color: transparent;"
         )
