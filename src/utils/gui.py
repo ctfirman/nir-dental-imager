@@ -23,10 +23,9 @@ from PyQt5.QtWidgets import (
     QGroupBox,
 )
 
-# TODO import errors
 from utils.database import nmlDB
 from utils.camera import VideoThread
-from utils.crack_detect import crack_detect_method_1, NMLModel, CrackDetectHighlight
+from utils.crack_detect import NMLModel, CrackDetectHighlight
 
 
 class CreateNewUserDialog(QDialog):
@@ -322,11 +321,6 @@ class MainWindow(QMainWindow):
             )
             self.crack_detection_thread_pool.start(image_crack_detection_worker)
 
-        # for crack detect, pass in LATEST_SESSION_ID
-        # crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
-        # NMLModel.get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION, self.database)
-
-        # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
         self.capture_image_button.setEnabled(capture_status)
 
     # @pyqtSlot(int)
