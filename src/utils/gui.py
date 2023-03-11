@@ -92,7 +92,7 @@ class MainWindow(QMainWindow):
 
         # Window Setup
         self.setWindowTitle("NML.ai")
-        self.setFixedSize(QSize(1080, 720))
+        self.setMinimumSize(QSize(1080, 720))
         self.setWindowIcon(QIcon("assets/logo.png"))
 
         # Create all Widgets and layouts
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
             " color: rgb(79, 79, 79);"
             "background-color: transparent;"
         )
-        self.title_label.setFixedSize(250, 80)
+        self.title_label.setFixedSize(290, 90)
 
         # Initialize Video
         self.video_label = QLabel()
