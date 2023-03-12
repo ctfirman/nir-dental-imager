@@ -4,8 +4,9 @@ from typing import Tuple, Any, Union, Literal
 import cv2
 import keras
 import numpy as np
+from time import time
 
-from PyQt5.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot, QThread
 
 from utils.database import nmlDB
 
@@ -77,7 +78,7 @@ class NMLModel:
 
 
 class CrackDetectHighlightSignals(QObject):
-    finished = pyqtSignal(int)
+    finished = pyqtSignal(str)
 
 
 class CrackDetectHighlight(QRunnable):
@@ -87,11 +88,12 @@ class CrackDetectHighlight(QRunnable):
         self.image_session_id = img_session_id
         self.user_uuid = user_uuid
         self.signals = CrackDetectHighlightSignals()
+        self.continueThread = True
 
     @classmethod
     def crop(cls, img):
 
-        y = 224  # Starting at top
+        y = 257  # Starting at top
         x = 197  # Starting at left
         h = 130  # Height
         w = 146  # Width
@@ -102,7 +104,7 @@ class CrackDetectHighlight(QRunnable):
 
         return crop
 
-    def crack_detect_method_1(self) -> Tuple[Any, Any]:
+    def crack_detect_method_1(self):
         """
         Algo from https://github.com/shomnathsomu/crack-detection-opencv
         1. read image
@@ -170,12 +172,33 @@ class CrackDetectHighlight(QRunnable):
         cv2.imwrite(completed_img_path, final_image)
 
         print("Finished crack detection!")
-        cv2.destroyAllWindows()
 
-        return src, result
+
+    def cropped_image_save(self):
+
+        raw_img_path = os.path.join(
+            self._database.get_base_filepath(self.user_uuid),
+            "raw",
+            f"{self.image_session_id}.jpg",
+        )
+        completed_img_path = os.path.join(
+            self._database.get_base_filepath(self.user_uuid),
+            "complete",
+            f"{self.image_session_id}-cropped.jpg",
+        )
+
+        # Get absolute path of session_id, which is the image
+        src = cv2.imread(raw_img_path)
+
+        # Crop the image to hone in on the tooth
+        cropped_img = self.crop(src)
+        cv2.imwrite(completed_img_path, cropped_img)
+
+
 
     @pyqtSlot()
     def run(self):
+
         # TODO: determine if we can pass and share the model between worker threads or each thread loads their own
         raw_img_path = os.path.join(
             self._database.get_base_filepath(self.user_uuid),
@@ -199,12 +222,22 @@ class CrackDetectHighlight(QRunnable):
 
         if ml_result:
             print("Crack Detected")
-            self.crack_detect_method_1()
+
         else:
             print("No Crack")
 
+        self.crack_detect_method_1()
+        self.cropped_image_save()
+
         # emit the finished signal to update image selector list
-        self.signals.finished.emit(self.image_session_id)
+        self.signals.finished.emit(str(self.image_session_id))
+
+        while self.continueThread:
+            QThread.sleep(1)
+
+    def stop_thread(self):
+        self.continueThread = False
+
 
 #if __name__ == "__main__":
     # crack_detect_method_1(1677963412788, "7e246217-c7b8-4b93-84ca-5c8319214db1", True)

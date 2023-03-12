@@ -158,6 +158,16 @@ class nmlDB:
         )
         return results
 
+    def get_img_session_for_uuid(self, uuid: str, desired_image_session: int) -> ImageSession:
+        results = (
+            self.session.query(ImageSession)
+            .filter(User.user_uuid == ImageSession.user_uuid)
+            .filter(User.user_uuid == uuid)
+            .filter(ImageSession.session_id == desired_image_session)
+            .first()
+        )
+        return results
+
     def update_img_session_crack_detection(
         self, img_session_id: int, crack_status: Union[Literal[0], Literal[1]]
     ) -> None:

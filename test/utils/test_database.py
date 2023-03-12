@@ -92,6 +92,15 @@ def test_get_all_img_sessions_for_uuid_empty():
 
     assert result == []
 
+def test_get_img_session_for_uuid():
+    res = test_db.get_img_session_for_uuid(test_uuid, 1000)
+
+    assert res.session_id == 1000
+    assert res.user_uuid == test_uuid
+    assert res.crack_detected == -1
+
+    assert res.image_name == ""
+
 
 def test__get_users_all():
     result = test_db._get_users_all()
