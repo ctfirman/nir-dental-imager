@@ -1,9 +1,10 @@
+import os
 import sys
 import cv2
 import numpy as np
 
 from PyQt5.QtGui import QColor, QPixmap, QImage, QIcon
-from PyQt5.QtCore import QSize, Qt, QThreadPool
+from PyQt5.QtCore import QSize, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -17,16 +18,16 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QFormLayout,
+    QGridLayout,
     QTabWidget,
     QStackedLayout,
     QListWidget,
     QGroupBox,
 )
 
-# TODO import errors
 from utils.database import nmlDB
 from utils.camera import VideoThread
-from utils.crack_detect import crack_detect_method_1, NMLModel, CrackDetectHighlight
+from utils.crack_detect import NMLModel, CrackDetectHighlight
 
 
 class CreateNewUserDialog(QDialog):
@@ -87,8 +88,13 @@ class MainWindow(QMainWindow):
 
         self.database = database
         self.USER_UUID = None
+        self.SELECTED_DATE = None
+        self.SELECTED_SESSION_ID = None
         self.USER_EMAIL = None
         self.MOST_RECENT_IMAGE_SESSION = 0
+        self.FILEPATH_OF_PAST_SCAN_IMAGE = None
+        self.image_session_dict = {}
+        self.session_id_to_thread_worker = {}
 
         # Window Setup
         self.setWindowTitle("NML.ai")
@@ -107,10 +113,29 @@ class MainWindow(QMainWindow):
         self.user_selector.addItems(self.database.get_all_users_emails())
         self.user_selector.currentItemChanged.connect(self.user_selector_index_changed)
 
+        self.past_scan_date_selector = QListWidget()
+        self.past_scan_date_selector.setFixedSize(236, 250)
+        self.past_scan_date_selector.currentItemChanged.connect(self.past_scan_date_selector_index_changed)
+
+        self.past_scan_image_session_selector = QListWidget()
+        self.past_scan_image_session_selector.setFixedSize(236, 250)
+        self.past_scan_image_session_selector.currentItemChanged.connect(self.past_scan_image_session_selector_index_changed)
+
+        # Button for swapping between highlighted and unhighlighted images
+        self.switch_image_button = QPushButton("Swap Highlighted/Regular Image")
+        self.switch_image_button.setStyleSheet(
+            "border-radius: 10px; "
+            'font: 25 13pt "Bahnschrift Light"; '
+            "background-color: rgb(209, 170, 170)"
+        )
+        self.switch_image_button.clicked.connect(self.swap_past_scan_image)
+        self.switch_image_button.setEnabled(False)
+
         # Default to first item if exists
         if self.user_selector.count():
             self.user_selector.setCurrentRow(0)
             self.USER_EMAIL = self.user_selector.item(0).text()
+
 
         self.add_new_user_btn = QPushButton("Create User")
         self.add_new_user_btn.clicked.connect(self.create_new_user)
@@ -155,6 +180,13 @@ class MainWindow(QMainWindow):
             self.completed_capture_handler
         )
 
+        # Initialize the past scan image
+        self.past_scan_image_label = QLabel()
+        filler_pixmap = QPixmap(500, 500)
+        filler_pixmap.fill(QColor(0, 0, 0, 25))
+        self.past_scan_image_label.setPixmap(filler_pixmap)
+
+
         # Capture image button
         self.capture_image_button = QPushButton("Capture Image")
         self.capture_image_button.setCheckable(False)
@@ -170,6 +202,7 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         self.stacked_layout = QStackedLayout()
         user_selector_layout = QVBoxLayout()
+        past_scan_layout = QGridLayout()
         user_btn_layout = QHBoxLayout()
         new_scan_layout = QVBoxLayout()
         image_name_layout = QHBoxLayout()
@@ -200,7 +233,24 @@ class MainWindow(QMainWindow):
         new_scan_container.setLayout(new_scan_layout)
 
         # Previous Scan Layout
+
+        # Organizing the widgets on a 4x4 grid, each occupying certain squares. Order is: row, col, rowspan, colspan
+        past_scan_layout.addWidget(self.past_scan_date_selector, 0, 0, 2, 1)
+        past_scan_layout.addWidget(self.past_scan_image_session_selector, 2, 0, 2, 1)
+        past_scan_layout.addWidget(self.past_scan_image_label, 0, 1, 3, 3)
+        past_scan_layout.addWidget(self.switch_image_button, 3, 1, 1, 3)
+
+        # Centers each widget into its respective allocated square in the grid
+        past_scan_layout.setAlignment(Qt.AlignCenter)
+        self.past_scan_image_label.setAlignment(Qt.AlignCenter)
+
+        # Set width of the swap images button, set left margin (lists were too close to left border), center the button
+        self.switch_image_button.setFixedWidth(460)
+        past_scan_layout.setContentsMargins(50, 0, 0, 0)
+        past_scan_layout.setAlignment(self.switch_image_button, Qt.AlignHCenter)
+
         past_scan_container = QWidget()
+        past_scan_container.setLayout(past_scan_layout)
 
         # Tab Widget for new scan and past scan
         content_tab = QTabWidget()
@@ -226,6 +276,84 @@ class MainWindow(QMainWindow):
     def user_selector_index_changed(self, i):
         print(f"user_selector index = {i.text()}")
         self.USER_EMAIL = i.text()
+
+    def past_scan_date_selector_index_changed(self, i):
+        date = i.text()
+        print(f"past_scan_date_selector index = {date}")
+        self.SELECTED_DATE = date
+        result = []
+
+        # Assigning names to the crack_status for readability in the second list widget
+        for image_session in self.image_session_dict[date]:
+            crack_status = ""
+            if image_session.crack_detected == 1:
+                crack_status = "CRACK"
+            elif image_session.crack_detected == 0:
+                crack_status = "NOCRACK"
+
+            # Final string will be the concatenated fields from the database: session id, crack_status, image name
+            final_str = str(image_session.session_id) + "_" + crack_status + "_" + image_session.image_name
+
+            # Result is the list of all the final strings (concatenated fields) to pass into the second list widget
+            result.append(final_str)
+
+        # Reset the filepath of the displayed image
+        self.FILEPATH_OF_PAST_SCAN_IMAGE = None
+
+        # Remove the current image from the pixmap and put a filler, in the case user wants to select a different date
+        filler_pixmap = QPixmap(500, 500)
+        filler_pixmap.fill(QColor(0, 0, 0, 25))
+        self.past_scan_image_label.setPixmap(filler_pixmap)
+
+        self.switch_image_button.setEnabled(False)
+
+        # Blocks the .clear() signal, since .clear() triggers the .connect of the second list widget, causing a crash
+        self.past_scan_image_session_selector.blockSignals(True)
+        self.past_scan_image_session_selector.clear()
+        self.past_scan_image_session_selector.blockSignals(False)
+
+        self.past_scan_image_session_selector.addItems(result)
+
+    def past_scan_image_session_selector_index_changed(self, i):
+        # session_info contains the session_id, crack_status, and image_name all concatenated to be displayed on the list
+        session_info = i.text()
+        print(f"past_scan_date_selector index = {session_info}")
+
+        # Gets the actual session id from the name
+        session_id = session_info.split("_")[0]
+        completed_img_path = os.path.join(
+            self.database.get_base_filepath(self.USER_UUID),
+            "complete",
+            f"{session_id}.jpg",
+        )
+
+        # Sets the filepath of the image, then displays it
+        self.FILEPATH_OF_PAST_SCAN_IMAGE = completed_img_path
+        highlighted_output_pixmap = QPixmap(completed_img_path)
+        resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(500, 500)
+        self.past_scan_image_label.setPixmap(resized_highlighted_output_pixmap)
+        self.switch_image_button.setEnabled(True)
+
+    def swap_past_scan_image(self):
+
+        """Swap between the highlighted image and the unhighlighted image. Checks the filepath to see
+            if it has the '-cropped' suffix. Changes the FILEPATH_OF_PAST_SCAN_IMAGE string accordingly"""
+
+        if "-cropped" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace("-cropped", "")
+            highlighted_output_pixmap = QPixmap(highlighted_file_path)
+            resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(500, 500)
+            self.past_scan_image_label.setPixmap(resized_highlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = highlighted_file_path
+        else:
+            base_name, extension = os.path.splitext(self.FILEPATH_OF_PAST_SCAN_IMAGE)
+            unhighlighted_file_path = f"{base_name}-cropped{extension}"
+            unhighlighted_output_pixmap = QPixmap(unhighlighted_file_path)
+            resized_unhighlighted_output_pixmap = unhighlighted_output_pixmap.scaled(500, 500)
+            self.past_scan_image_label.setPixmap(resized_unhighlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = unhighlighted_file_path
+
+
 
     def create_new_user(self):
         # Create a pop up with form
@@ -283,6 +411,16 @@ class MainWindow(QMainWindow):
             self.video_thread.set_user(self.USER_UUID)
             self.video_thread.start()  # TODO restart thread if changed user. Maybe? -> https://stackoverflow.com/questions/44006024/restart-qthread-with-gui
 
+            # Populate past scans initially
+            all_image_session = self.database.get_all_img_sessions_for_uuid(self.USER_UUID)
+
+            for image_session in all_image_session:
+                date = str(image_session.date.date())
+                if self.image_session_dict.get(date, None) is None:
+                    self.image_session_dict[date] = []
+                self.image_session_dict[date].append(image_session)
+            self.past_scan_date_selector.addItems(self.image_session_dict.keys())
+
             # Swap layouts
             self.stacked_layout.setCurrentIndex(1)
 
@@ -321,18 +459,34 @@ class MainWindow(QMainWindow):
             image_crack_detection_worker.signals.finished.connect(
                 self.update_past_scans_list
             )
+            self.session_id_to_thread_worker[self.MOST_RECENT_IMAGE_SESSION] = image_crack_detection_worker
             self.crack_detection_thread_pool.start(image_crack_detection_worker)
 
-        # for crack detect, pass in LATEST_SESSION_ID
-        # crack_detect_method_1(self.MOST_RECENT_IMAGE_SESSION, True)
-        # NMLModel.get_data_for_ml(self.USER_UUID, self.MOST_RECENT_IMAGE_SESSION, self.database)
-
-        # TODO: CALL CRACK DETECTION IF BLOCKING DO BEFORE ENABLING BUTTON
         self.capture_image_button.setEnabled(capture_status)
 
-    # @pyqtSlot(int)
+
+    #@pyqtSlot(int)
     def update_past_scans_list(self, image_session_id):
         """Updates the list of past scans after an image session computation is completed"""
+        image_session_id = int(image_session_id)
+        image_session = self.database.get_img_session_for_uuid(self.USER_UUID, image_session_id)
+        self.session_id_to_thread_worker[image_session_id].stop_thread()
+
+        crack_status = ""
+        if image_session.crack_detected == 1:
+            crack_status = "CRACK"
+        elif image_session.crack_detected == 0:
+            crack_status = "NOCRACK"
+        final_str = str(image_session.session_id) + "_" + crack_status + "_" + image_session.image_name
+
+        date = str(image_session.date.date())
+        if self.image_session_dict.get(date, None) is None:
+            self.image_session_dict[date] = []
+        self.image_session_dict[date].append(image_session)
+
+        if self.SELECTED_DATE == date:
+            self.past_scan_image_session_selector.addItem(final_str)
+
         print("Crack detection is done")
         pass
 
