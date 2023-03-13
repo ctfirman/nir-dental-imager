@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         self.switch_image_button = QPushButton("Swap Highlighted/Regular Image")
         self.switch_image_button.setStyleSheet(
             "border-radius: 10px; "
-            'font: 25 13pt "Bahnschrift Light"; '
+            'font: 25 13pt "Fira Code"; '
             "background-color: rgb(209, 170, 170)"
         )
         self.switch_image_button.clicked.connect(self.swap_past_scan_image)
@@ -194,6 +194,11 @@ class MainWindow(QMainWindow):
         self.capture_image_button.setCheckable(False)
         self.capture_image_button.clicked.connect(self.capture_image_handler)
         self.capture_image_button.setEnabled(False)
+        self.capture_image_button.setStyleSheet(
+            "border-radius: 10px; "
+            'font: 25 13pt "Fira Code"; '
+            "background-color: rgb(209, 170, 170)"
+        )
 
         # Capture image textbox for image name
         self.image_name_text = QLabel("Enter the Image Name:")
@@ -229,7 +234,9 @@ class MainWindow(QMainWindow):
         image_name_layout.addWidget(self.image_name_text)
         image_name_layout.addWidget(self.image_name_box)
         new_scan_layout.addLayout(image_name_layout)
+        self.capture_image_button.setFixedWidth(460)
         new_scan_layout.addWidget(self.capture_image_button)
+        new_scan_layout.setAlignment(self.capture_image_button, Qt.AlignHCenter)  # type: ignore
 
         new_scan_container = QWidget()
         new_scan_container.setLayout(new_scan_layout)
