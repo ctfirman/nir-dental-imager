@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         self.switch_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(209, 170, 170)"
+            "background-color: rgb(56, 182, 255)"
         )
         self.switch_image_button.clicked.connect(self.swap_past_scan_image)
         self.switch_image_button.setEnabled(False)
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
         self.add_new_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(209, 170, 170)"
+            "background-color: rgb(56, 182, 255)"
         )
 
         self.set_user_btn = QPushButton("Set User")
@@ -153,7 +153,7 @@ class MainWindow(QMainWindow):
         self.set_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(209, 170, 170)"
+            "background-color: rgb(56, 182, 255)"
         )
 
         self.title_label = QLabel("NML.ai", self)
@@ -162,7 +162,6 @@ class MainWindow(QMainWindow):
             " color: rgb(79, 79, 79);"
             "background-color: transparent;"
         )
-        self.title_label.setFixedSize(290, 90)
 
         # Initialize Video
         self.video_label = QLabel()
@@ -197,7 +196,7 @@ class MainWindow(QMainWindow):
         self.capture_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(209, 170, 170)"
+            "background-color: rgb(56, 182, 255)"
         )
 
         # Capture image textbox for image name
@@ -279,7 +278,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.setStyleSheet(
-            "background-color: qlineargradient(spread:pad, x1:0.056, y1:0.119318, x2:1, y2:1, stop:0 rgba(255, 229, 222, 255), stop:1 rgba(229, 235, 255, 255));"
+            "background-color: #d1e5e6;"
+            # "background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.2, y2:0.2, stop:0 rgba(56, 182, 255,1), stop:1 rgba(255,244,228,1));"
         )
 
     def user_selector_index_changed(self, i):
