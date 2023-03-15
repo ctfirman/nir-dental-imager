@@ -270,17 +270,22 @@ class CrackDetectHighlight(QRunnable):
             f"{self.image_session_id}.jpg",
         )
 
-        self.model = NMLModel("nmlModelV2", self._database)
         # load model
         if BETA_VERSION:
             # Resize img to use in v2 prediction
             # v3 model uses 325x325 while v2 model uses 158x158
             # Use old model and new model to predict crack
-            ml_result = self.model.predict(raw_img_path, resize=True)
-            # TODO INSERT NEW MODEL
+            # model_v2 = NMLModel("nmlModelV2", self._database)
+            # ml_result = model_v2.predict(raw_img_path, resize=True)
+            # print(f"v2 model predict = {ml_result}")
+
+            model_v3 = NMLModel("nmlModelV3", self._database)
+            ml_result = model_v3.predict(raw_img_path)
+            print(f"v3 model predict = {ml_result}")
 
         else:
-            ml_result = self.model.predict(raw_img_path)
+            model = NMLModel("nmlModelV2", self._database)
+            ml_result = model.predict(raw_img_path)
         # Update the database
         self._database.update_img_session_crack_detection(
             self.image_session_id, ml_result
