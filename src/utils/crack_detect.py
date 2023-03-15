@@ -50,6 +50,11 @@ class NMLModel:
         x = 187  # Starting at left
         h = 158  # Height
         w = 158  # Width
+        if BETA_VERSION:
+            y = 815  # Starting at top
+            x = 445  # Starting at left
+            h = 325  # Height
+            w = 325  # Width
         crop = img[y : y + h, x : x + w]
         return crop
 
