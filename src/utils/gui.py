@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         self.switch_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(56, 182, 255)"
+            "background-color: rgb(173, 216, 230)"
         )
         self.switch_image_button.clicked.connect(self.swap_past_scan_image)
         self.switch_image_button.setEnabled(False)
@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
         self.add_new_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(56, 182, 255)"
+            "background-color: rgb(173, 216, 230)"
         )
 
         self.set_user_btn = QPushButton("Set User")
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
         self.set_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(56, 182, 255)"
+            "background-color: rgb(173, 216, 230)"
         )
 
         self.title_label = QLabel("NML.ai", self)
@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
         self.capture_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(56, 182, 255)"
+            "background-color: rgb(173, 216, 230)"
         )
 
         # Capture image textbox for image name
