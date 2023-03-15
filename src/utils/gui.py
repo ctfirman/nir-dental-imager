@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
 from utils.database import nmlDB
 from utils.camera import VideoThread
 from utils.crack_detect import NMLModel, CrackDetectHighlight
+from utils.version import BETA_VERSION
 
 
 class CreateNewUserDialog(QDialog):
@@ -331,7 +332,10 @@ class MainWindow(QMainWindow):
 
         # Initialize Video
         self.video_label = QLabel()
-        grey = QPixmap(750, 500)
+        if BETA_VERSION:
+            grey = QPixmap(450, 800)
+        else:
+            grey = QPixmap(480, 640)
         grey.fill(QColor("darkGray"))
         self.video_label.setPixmap(grey)
 
@@ -699,6 +703,9 @@ class MainWindow(QMainWindow):
     # @pyqtSlot(np.ndarray)
     def update_image(self, cv_img: np.ndarray) -> None:
         qt_image = self._convert_cv_to_qt(cv_img)
+        if BETA_VERSION:
+            # qt_image = qt_image.scaled(720, 1280)
+            qt_image = qt_image.scaled(450, 800)
         self.video_label.setPixmap(qt_image)
 
     # @pyqtSlot(bool)

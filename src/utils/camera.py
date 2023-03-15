@@ -6,6 +6,9 @@ from typing import Optional
 
 from utils.exceptions import VideoNotOpened
 from utils.database import nmlDB
+from utils.version import BETA_VERSION, CAMERA_PORT
+
+# from utils.crack_detect import NMLModel
 
 
 class VideoThread(QThread):
@@ -26,8 +29,10 @@ class VideoThread(QThread):
         self.USER_UUID = user_uuid
         self.img_session_id = 0
 
-        self.frame_width = 640
-        self.frame_hight = 480
+        self.frame_width = 1920
+        self.frame_hight = 1080
+
+        self.internal_ml_img_counter = 0
 
     def set_user(self, user_uuid) -> None:
         self.USER_UUID = user_uuid
@@ -82,7 +87,7 @@ class VideoThread(QThread):
         cv2.destroyAllWindows()
 
     def run(self):
-        self.video = cv2.VideoCapture(0)
+        self.video = cv2.VideoCapture(CAMERA_PORT)
         print(f"Video = {self.video}")
 
         if not self.video.isOpened():
@@ -93,9 +98,10 @@ class VideoThread(QThread):
         # Emit to allow for recording
         self.camera_available_signal.emit(True)
 
-        # # To set the resolution
-        # video.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
-        # video.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_hight)
+        if BETA_VERSION:
+            # To set the resolution
+            self.video.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
+            self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_hight)
 
         # Ensure the paths are set to save images
         self._DATABASE.check_set_filepath(self.USER_UUID)
@@ -113,17 +119,33 @@ class VideoThread(QThread):
                 break
 
             # Our operations on the frame come here
+            # # Increase contrast
+            # frame, alpha, beta = self.automatic_brightness_and_contrast(
+            #     frame, clip_hist_percent=5
+            # )
+
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
             # Save the frame to the video
             # if self._record_flag:
             #     self.video_writer.write(frame)
 
             # Capture the current image to file
             if self._capture_flag:
+                # TODO UNCOMMENT FOR NORMAL FUNCTIONALITY
                 self._capture_flag = False
                 self._save_image(frame)
+
+                # # TODO FOR ML DATA CAPTURE REMOVE AFTER
+                # if self.internal_ml_img_counter >= 10:
+                #     self._capture_flag = False
+                #     self.internal_ml_img_counter = 0
+                # else:
+                #     self.internal_ml_img_counter += 1
+                #     print(frame.shape)
+                #     # print(f"alpha = {alpha}, beta = {beta}")
+                #     NMLModel.get_data_for_ml_v2(frame, self._DATABASE)
+
                 self.capture_complete_signal.emit(True)
 
             # Emit the resulting frame
@@ -131,6 +153,42 @@ class VideoThread(QThread):
 
         print("Cleaning Up!")
         self._video_close()
+
+    # Automatic brightness and contrast optimization with optional histogram clipping
+    def automatic_brightness_and_contrast(self, image, clip_hist_percent=1):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Calculate grayscale histogram
+        hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
+        hist_size = len(hist)
+
+        # Calculate cumulative distribution from the histogram
+        accumulator = []
+        accumulator.append(float(hist[0]))
+        for index in range(1, hist_size):
+            accumulator.append(accumulator[index - 1] + float(hist[index]))
+
+        # Locate points to clip
+        maximum = accumulator[-1]
+        clip_hist_percent *= maximum / 100.0
+        clip_hist_percent /= 2.0
+
+        # Locate left cut
+        minimum_gray = 0
+        while accumulator[minimum_gray] < clip_hist_percent:
+            minimum_gray += 1
+
+        # Locate right cut
+        maximum_gray = hist_size - 1
+        while accumulator[maximum_gray] >= (maximum - clip_hist_percent):
+            maximum_gray -= 1
+
+        # Calculate alpha and beta values
+        alpha = 255 / (maximum_gray - minimum_gray)
+        beta = -minimum_gray * alpha
+
+        auto_result = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+        return (auto_result, alpha, beta)
 
     def stop(self):
         """Sets run flag to False and waits for thread to finish"""

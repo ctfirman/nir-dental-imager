@@ -18,13 +18,13 @@ def pull_ml_data():
 
     all_crack = db.get_all_ml_data("CRACK")
     for entry in all_crack:
-        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)  # type:ignore
         all_classifier_list.append(entry.classifier)
         all_data_list.append(after_img)
 
     no_crack = db.get_all_ml_data("NO_CRACK")
     for entry in no_crack:
-        after_img = np.frombuffer(entry.img, dtype=np.uint8)
+        after_img = np.frombuffer(entry.img, dtype=np.uint8)  # type:ignore
         all_classifier_list.append(entry.classifier)
         all_data_list.append(after_img)
 
@@ -40,5 +40,11 @@ def pull_ml_data():
     print(f"classifiers example = {classifiers}")
 
 
+def update_ml_data():
+    db = nmlDB("nml.db")
+    db.change_ml_data_class_label(5, 15, 20)
+
+
 if __name__ == "__main__":
     main()
+    # update_ml_data()
