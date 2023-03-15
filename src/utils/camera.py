@@ -87,7 +87,7 @@ class VideoThread(QThread):
         cv2.destroyAllWindows()
 
     def run(self):
-        self.video = cv2.VideoCapture(1)
+        self.video = cv2.VideoCapture(0)
         print(f"Video = {self.video}")
 
         if not self.video.isOpened():
