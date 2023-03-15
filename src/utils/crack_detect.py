@@ -136,7 +136,10 @@ class CrackDetectHighlight(QRunnable):
         h = 130  # Height
         w = 146  # Width
         if BETA_VERSION:
-            pass
+            y = 815  # Starting at top
+            x = 445  # Starting at left
+            h = 325  # Height
+            w = 325  # Width
 
         crop = img[y : y + h, x : x + w]
         # cv2.imshow('image', crop)
