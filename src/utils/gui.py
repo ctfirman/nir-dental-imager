@@ -78,6 +78,172 @@ class CreateNewUserDialog(QDialog):
         self.form_group_box.setLayout(form_layout)
 
 
+class PreviewImageDialog(QDialog):
+    def __init__(
+        self, user_uuid, image_session, filepath_of_past_img, database, parent=None
+    ):
+        super().__init__(parent=parent)
+        """Create a new dialog as a new pop up window for when the user clicks "capture". This dialog box would show
+        them the results of the current image"""
+        self.database = database
+        self.user_uuid = user_uuid
+        self.FILEPATH_OF_PAST_SCAN_IMAGE = filepath_of_past_img
+
+        self.setWindowTitle("Image Preview")
+
+        # Buttons at the bottom of the form
+        QBtn = QDialogButtonBox.Ok  # type: ignore
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        # Set size
+        self.setFixedSize(600, 700)
+
+        # Path for the completed image
+        completed_img_path = os.path.join(
+            self.database.get_base_filepath(self.user_uuid),
+            "complete",
+            f"{image_session.session_id}-normal.jpg",
+        )
+        if self.FILEPATH_OF_PAST_SCAN_IMAGE == "":
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = completed_img_path
+
+        # Make the crack status more readable by changing the status code to words
+        if image_session.crack_detected == 1:
+            crack_status = "CRACK"
+            crack_detection_str = "Oh no! Crack detected!"
+            background_color_css = "background-color: rgba(255, 0, 0, 0.25)"
+        else:
+            crack_status = "NOCRACK"
+            crack_detection_str = "Good job! No crack detected!"
+            background_color_css = "background-color: rgba(0, 255, 0, 0.25)"
+
+        # Final string will be the concatenated fields from the database: session id, crack_status, image name
+        final_str = f"Showing current scan result for: {image_session.session_id}_{crack_status}_{image_session.image_name}"
+
+        # Creating the name label
+        current_scan_name = QLabel(final_str)
+        current_scan_name.setStyleSheet('font: 18 13pt "Fira Code"; ')
+        current_scan_name.setContentsMargins(0, 0, 0, 20)
+        current_scan_name.setAlignment(Qt.AlignTop)  # type: ignore
+
+        # Creating the signal label, (to notify user in a more visualized way if they have crack or not)
+        crack_detection_status = QLabel(crack_detection_str)
+        crack_detection_status.setStyleSheet(
+            'font: 24 13pt "Fira Code";' + background_color_css
+        )
+        crack_detection_status.setContentsMargins(0, 15, 0, 15)
+        crack_detection_status.setFixedWidth(400)
+        crack_detection_status.setAlignment(Qt.AlignCenter)  # type: ignore
+
+        # Creating the image label
+        completed_img_path_raw = os.path.join(
+            self.database.get_base_filepath(self.user_uuid),
+            "complete",
+            f"{image_session.session_id}-cropped.jpg",
+        )
+
+        self.current_scan_image_label = QLabel()
+        if image_session.crack_detected == 1:
+            current_scan_pixmap = QPixmap(completed_img_path)
+        else:
+            current_scan_pixmap = QPixmap(completed_img_path_raw)
+        resized_current_scan_pixmap = current_scan_pixmap.scaled(400, 400)
+        self.current_scan_image_label.setPixmap(resized_current_scan_pixmap)
+        self.current_scan_image_label.setContentsMargins(0, 0, 0, 20)
+
+        # Indicator label
+        self.indicator_label = QLabel(
+            "The 'normal' image is shown (regular crack detection)"
+        )
+        self.indicator_label.setStyleSheet('font: 18 13pt "Fira Code"; ')
+        self.indicator_label.setContentsMargins(0, 0, 0, 20)
+
+        # Creating the button to swap between images
+        # Button for swapping between highlighted and unhighlighted images
+        switch_image_button = QPushButton("Change Sensitivity")
+        switch_image_button.setStyleSheet(
+            "border-radius: 10px; "
+            'font: 25 13pt "Fira Code"; '
+            "background-color: rgb(56, 182, 255)"
+        )
+        switch_image_button.clicked.connect(self._swap_current_scan_image)
+        switch_image_button.setEnabled(True)
+        switch_image_button.setFixedWidth(200)
+        if image_session.crack_detected == 0:
+            switch_image_button.setEnabled(False)
+
+        # Adding all widgets to the layout, aligning the whole thing
+        self.current_scan_result_layout = QVBoxLayout()
+        self.current_scan_result_layout.addWidget(current_scan_name)
+        self.current_scan_result_layout.addWidget(crack_detection_status)
+        self.current_scan_result_layout.addWidget(self.current_scan_image_label)
+        self.current_scan_result_layout.addWidget(self.indicator_label)
+        self.current_scan_result_layout.addWidget(switch_image_button)
+        self.current_scan_result_layout.addWidget(self.buttonBox)
+
+        for widget in [
+            current_scan_name,
+            crack_detection_status,
+            self.current_scan_image_label,
+            self.indicator_label,
+            switch_image_button,
+        ]:
+            self.current_scan_result_layout.setAlignment(widget, Qt.AlignHCenter)  # type: ignore
+
+        self.setLayout(self.current_scan_result_layout)
+
+    def _swap_current_scan_image(self):
+
+        """Swap between a highlighted image, a slightly more precise highlighted image (risk associated), and the
+        reqular raw image. Checks the filepath to see if it has the '-cropped' suffix. Changes the
+        FILEPATH_OF_PAST_SCAN_IMAGE string accordingly"""
+
+        if "-cropped" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            unhighlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
+                "-cropped", "-normal"
+            )
+            highlighted_output_pixmap = QPixmap(unhighlighted_file_path)
+            resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(
+                400, 400
+            )
+            self.current_scan_image_label.setPixmap(resized_highlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = unhighlighted_file_path
+            self.indicator_label.setText(
+                "The 'normal' image is shown (regular crack detection)"
+            )
+        elif "-normal" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
+                "-normal", "-precise"
+            )
+            unhighlighted_output_pixmap = QPixmap(highlighted_file_path)
+            resized_unhighlighted_output_pixmap = unhighlighted_output_pixmap.scaled(
+                400, 400
+            )
+            self.current_scan_image_label.setPixmap(resized_unhighlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = highlighted_file_path
+            self.indicator_label.setText(
+                "The 'precise' image is shown (precise crack detection)"
+            )
+        elif "-precise" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            precise_highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
+                "-precise", "-cropped"
+            )
+            unhighlighted_output_pixmap = QPixmap(precise_highlighted_file_path)
+            resized_unhighlighted_output_pixmap = unhighlighted_output_pixmap.scaled(
+                400, 400
+            )
+            self.current_scan_image_label.setPixmap(resized_unhighlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = precise_highlighted_file_path
+            self.indicator_label.setText("The original image is displayed")
+        else:
+            print(
+                "There was a problem in reading the file name of the image. Make sure that the image "
+                "file path has the specified keywords in it. The keywords were specified in the "
+                "function call for the crack_detect_method_1"
+            )
+
+
 class MainWindow(QMainWindow):
     """
     Main window for gui interface
@@ -126,7 +292,7 @@ class MainWindow(QMainWindow):
         )
 
         # Button for swapping between highlighted and unhighlighted images
-        self.switch_image_button = QPushButton("Swap Highlighted/Regular Image")
+        self.switch_image_button = QPushButton("Change Sensitivity")
         self.switch_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
@@ -184,9 +350,11 @@ class MainWindow(QMainWindow):
 
         # Initialize the past scan image
         self.past_scan_image_label = QLabel()
-        filler_pixmap = QPixmap(500, 500)
+        filler_pixmap = QPixmap(400, 400)
         filler_pixmap.fill(QColor(0, 0, 0, 25))
         self.past_scan_image_label.setPixmap(filler_pixmap)
+
+        self.current_scan_image_label = QLabel()
 
         # Capture image button
         self.capture_image_button = QPushButton("Capture Image")
@@ -203,12 +371,29 @@ class MainWindow(QMainWindow):
         self.image_name_text = QLabel("Enter the Image Name:")
         self.image_name_box = QLineEdit()
 
+        # Label for indicator showing which sensitivity image is being displayed
+        self.indicator_label = QLabel(
+            "The 'normal' image is shown (regular crack detection)"
+        )
+        self.indicator_label.setStyleSheet('font: 18 13pt "Fira Code"; ')
+        self.indicator_label.setContentsMargins(0, 0, 0, 20)
+
+        # Label for crack status (better visualization for whether or not a crack is detected)
+        # Creating the signal label, (to notify user in a more visualized way if they have crack or not)
+        self.crack_detection_status = QLabel()
+        self.crack_detection_status.setContentsMargins(0, 15, 0, 15)
+        self.crack_detection_status.setFixedWidth(400)
+        self.crack_detection_status.setAlignment(Qt.AlignCenter)  # type: ignore
+
+
     def init_layouts(self):
         # Set the Layout
         main_layout = QVBoxLayout()
         self.stacked_layout = QStackedLayout()
         user_selector_layout = QVBoxLayout()
-        past_scan_layout = QGridLayout()
+        past_scan_layout = QHBoxLayout()
+        past_scan_left_lists = QVBoxLayout()
+        past_scan_results = QVBoxLayout()
         user_btn_layout = QHBoxLayout()
         new_scan_layout = QVBoxLayout()
         image_name_layout = QHBoxLayout()
@@ -242,11 +427,26 @@ class MainWindow(QMainWindow):
 
         # Previous Scan Layout
 
-        # Organizing the widgets on a 4x4 grid, each occupying certain squares. Order is: row, col, rowspan, colspan
-        past_scan_layout.addWidget(self.past_scan_date_selector, 0, 0, 2, 1)
-        past_scan_layout.addWidget(self.past_scan_image_session_selector, 2, 0, 2, 1)
-        past_scan_layout.addWidget(self.past_scan_image_label, 0, 1, 3, 3)
-        past_scan_layout.addWidget(self.switch_image_button, 3, 1, 1, 3)
+        # Organizing the list widgets on a vertical layout (left side)
+        past_scan_left_lists.addWidget(self.past_scan_date_selector)
+        past_scan_left_lists.addWidget(self.past_scan_image_session_selector)
+
+        # Organizing the results widgets on a vertical layout as well, (right side)
+        past_scan_results.addWidget(self.crack_detection_status)
+        past_scan_results.addWidget(self.past_scan_image_label)
+        past_scan_results.addWidget(self.indicator_label)
+        past_scan_results.addWidget(self.switch_image_button)
+
+        for widget in [
+            self.crack_detection_status,
+            self.past_scan_image_label,
+            self.indicator_label,
+            self.switch_image_button,
+        ]:
+            past_scan_results.setAlignment(widget, Qt.AlignHCenter)  # type: ignore
+
+        past_scan_layout.addLayout(past_scan_left_lists)
+        past_scan_layout.addLayout(past_scan_results)
 
         # Centers each widget into its respective allocated square in the grid
         past_scan_layout.setAlignment(Qt.AlignCenter)  # type: ignore
@@ -302,11 +502,7 @@ class MainWindow(QMainWindow):
 
             # Final string will be the concatenated fields from the database: session id, crack_status, image name
             final_str = (
-                str(image_session.session_id)
-                + "_"
-                + crack_status
-                + "_"
-                + image_session.image_name
+                f"{image_session.session_id}_{crack_status}_{image_session.image_name}"
             )
 
             # Result is the list of all the final strings (concatenated fields) to pass into the second list widget
@@ -316,7 +512,7 @@ class MainWindow(QMainWindow):
         self.FILEPATH_OF_PAST_SCAN_IMAGE = ""
 
         # Remove the current image from the pixmap and put a filler, in the case user wants to select a different date
-        filler_pixmap = QPixmap(500, 500)
+        filler_pixmap = QPixmap(400, 400)
         filler_pixmap.fill(QColor(0, 0, 0, 25))
         self.past_scan_image_label.setPixmap(filler_pixmap)
 
@@ -336,50 +532,84 @@ class MainWindow(QMainWindow):
 
         # Gets the actual session id from the name
         session_id, crack_status, img_name = session_info.split("_")
+        completed_img_path = os.path.join(
+            self.database.get_base_filepath(self.USER_UUID),  # type: ignore
+            "complete",  # type: ignore
+            f"{session_id}-normal.jpg",  # type: ignore
+        )
 
         if crack_status == "CRACK":
             completed_img_path = os.path.join(
                 self.database.get_base_filepath(self.USER_UUID),  # type: ignore
                 "complete",  # type: ignore
-                f"{session_id}.jpg",  # type: ignore
+                f"{session_id}-normal.jpg",  # type: ignore
             )
+            crack_detection_str = "Oh no! Crack detected!"
+            background_color_css = "background-color: rgba(255, 0, 0, 0.25);"
         else:
             completed_img_path = os.path.join(
                 self.database.get_base_filepath(self.USER_UUID),  # type: ignore
                 "complete",  # type: ignore
                 f"{session_id}-cropped.jpg",  # type: ignore
             )
+            crack_detection_str = "Good job! No crack detected!"
+            background_color_css = "background-color: rgba(0, 255, 0, 0.25);"
+
+        self.crack_detection_status.setText(crack_detection_str)
+        self.crack_detection_status.setStyleSheet(
+            'font: 24 13pt "Fira Code";' + background_color_css
+        )
+
         # Sets the filepath of the image, then displays it
         self.FILEPATH_OF_PAST_SCAN_IMAGE = completed_img_path
         highlighted_output_pixmap = QPixmap(completed_img_path)
-        resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(500, 500)
+        resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(400, 400)
         self.past_scan_image_label.setPixmap(resized_highlighted_output_pixmap)
         self.switch_image_button.setEnabled(True)
 
     def swap_past_scan_image(self):
 
-        """Swap between the highlighted image and the unhighlighted image. Checks the filepath to see
-        if it has the '-cropped' suffix. Changes the FILEPATH_OF_PAST_SCAN_IMAGE string accordingly"""
+        """Swap between a highlighted image, a slightly more precise highlighted image (risk associated), and the
+        reqgular raw image. Checks the filepath to see if it has the '-cropped' suffix. Changes the
+        FILEPATH_OF_PAST_SCAN_IMAGE string accordingly"""
 
         if "-cropped" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
             highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
-                "-cropped", ""
+                "-cropped", "-normal"
             )
             highlighted_output_pixmap = QPixmap(highlighted_file_path)
             resized_highlighted_output_pixmap = highlighted_output_pixmap.scaled(
-                500, 500
+                400, 400
             )
             self.past_scan_image_label.setPixmap(resized_highlighted_output_pixmap)
             self.FILEPATH_OF_PAST_SCAN_IMAGE = highlighted_file_path
-        else:
-            base_name, extension = os.path.splitext(self.FILEPATH_OF_PAST_SCAN_IMAGE)
-            unhighlighted_file_path = f"{base_name}-cropped{extension}"
-            unhighlighted_output_pixmap = QPixmap(unhighlighted_file_path)
+            self.indicator_label.setText(
+                "The 'normal' image is shown (regular crack detection)"
+            )
+        elif "-normal" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
+                "-normal", "-precise"
+            )
+            unhighlighted_output_pixmap = QPixmap(highlighted_file_path)
             resized_unhighlighted_output_pixmap = unhighlighted_output_pixmap.scaled(
-                500, 500
+                400, 400
             )
             self.past_scan_image_label.setPixmap(resized_unhighlighted_output_pixmap)
-            self.FILEPATH_OF_PAST_SCAN_IMAGE = unhighlighted_file_path
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = highlighted_file_path
+            self.indicator_label.setText(
+                "The 'precise' image is shown (regular crack detection)"
+            )
+        elif "-precise" in self.FILEPATH_OF_PAST_SCAN_IMAGE:
+            highlighted_file_path = self.FILEPATH_OF_PAST_SCAN_IMAGE.replace(
+                "-precise", "-cropped"
+            )
+            unhighlighted_output_pixmap = QPixmap(highlighted_file_path)
+            resized_unhighlighted_output_pixmap = unhighlighted_output_pixmap.scaled(
+                400, 400
+            )
+            self.past_scan_image_label.setPixmap(resized_unhighlighted_output_pixmap)
+            self.FILEPATH_OF_PAST_SCAN_IMAGE = highlighted_file_path
+            self.indicator_label.setText("The original image is displayed")
 
     def create_new_user(self):
         # Create a pop up with form
@@ -439,7 +669,7 @@ class MainWindow(QMainWindow):
 
             # Populate past scans initially
             all_image_session = self.database.get_all_img_sessions_for_uuid(
-                self.USER_UUID
+                self.USER_UUID  # type: ignore
             )
 
             for image_session in all_image_session:
@@ -478,8 +708,6 @@ class MainWindow(QMainWindow):
     # @pyqtSlot(bool)
     def completed_capture_handler(self, capture_status: bool) -> None:
         """Handler after an image is captured"""
-        # self.MOST_RECENT_IMAGE_SESSION
-
         if self.USER_UUID:
             image_crack_detection_worker = CrackDetectHighlight(
                 self.database, self.MOST_RECENT_IMAGE_SESSION, self.USER_UUID
@@ -499,7 +727,7 @@ class MainWindow(QMainWindow):
         """Updates the list of past scans after an image session computation is completed"""
         image_session_id = int(image_session_id)
         image_session = self.database.get_img_session_for_uuid(
-            self.USER_UUID, image_session_id
+            self.USER_UUID, image_session_id  # type: ignore
         )
         self.session_id_to_thread_worker[image_session_id].stop_thread()
 
@@ -508,12 +736,9 @@ class MainWindow(QMainWindow):
             crack_status = "CRACK"
         elif image_session.crack_detected == 0:
             crack_status = "NOCRACK"
+
         final_str = (
-            str(image_session.session_id)
-            + "_"
-            + crack_status
-            + "_"
-            + image_session.image_name
+            f"{image_session.session_id}_{crack_status}_{image_session.image_name}"
         )
 
         date = str(image_session.date.date())
@@ -533,7 +758,17 @@ class MainWindow(QMainWindow):
             self.past_scan_image_session_selector.addItem(final_str)  # type: ignore
 
         print("Crack detection is done")
-        pass
+        show_current_scan_result = PreviewImageDialog(
+            self.USER_UUID,
+            image_session,
+            self.FILEPATH_OF_PAST_SCAN_IMAGE,
+            self.database,
+            parent=self,
+        )
+
+        dialog_action = show_current_scan_result.exec()
+        if dialog_action:
+            print("Closed!")
 
     def _convert_cv_to_qt(self, cv_img) -> QPixmap:
         """Convert from an opencv image to QPixmap"""
