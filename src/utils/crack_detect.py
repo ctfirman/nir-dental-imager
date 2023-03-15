@@ -24,6 +24,21 @@ class NMLModel:
     def predict(self, img_path: str, resize=False) -> Union[Literal[0], Literal[1]]:
         cropped_img = self.ml_img_crop(img_path)
 
+        if resize:
+            print("Original Dimensions : ", cropped_img.shape)
+            scale_percent = 60  # percent of original size
+            width = int(cropped_img.shape[1] * scale_percent / 100)
+            height = int(cropped_img.shape[0] * scale_percent / 100)
+            dim = (width, height)
+
+            # resize image
+            resized = cv2.resize(cropped_img, dim, interpolation=cv2.INTER_AREA)
+
+            print("Resized Dimensions : ", resized.shape)
+
+            cv2.imshow("Resized image", resized)
+            cv2.waitKey(0)
+
         # flatten and reduce img to pass into model
         reduced_img = []
         for row in cropped_img:
@@ -33,21 +48,6 @@ class NMLModel:
             reduced_img.append(reduced)
         reduced_img = np.array(reduced_img).flatten()
         reduced_img = np.array([reduced_img])
-
-        if resize:
-            print("Original Dimensions : ", reduced_img.shape)
-            scale_percent = 60  # percent of original size
-            width = int(reduced_img.shape[1] * scale_percent / 100)
-            height = int(reduced_img.shape[0] * scale_percent / 100)
-            dim = (width, height)
-
-            # resize image
-            resized = cv2.resize(reduced_img, dim, interpolation=cv2.INTER_AREA)
-
-            print("Resized Dimensions : ", resized.shape)
-
-            cv2.imshow("Resized image", resized)
-            cv2.waitKey(0)
 
         # prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
         prediction = self.crack_detect_model(reduced_img)[0]  # type: ignore
