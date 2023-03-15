@@ -6,7 +6,7 @@ from typing import Optional
 
 from utils.exceptions import VideoNotOpened
 from utils.database import nmlDB
-from utils.version import BETA_VERSION
+from utils.version import BETA_VERSION, CAMERA_PORT
 
 # from utils.crack_detect import NMLModel
 
@@ -87,7 +87,7 @@ class VideoThread(QThread):
         cv2.destroyAllWindows()
 
     def run(self):
-        self.video = cv2.VideoCapture(0)
+        self.video = cv2.VideoCapture(CAMERA_PORT)
         print(f"Video = {self.video}")
 
         if not self.video.isOpened():
