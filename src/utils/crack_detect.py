@@ -104,7 +104,7 @@ class CrackDetectHighlight(QRunnable):
 
         return crop
 
-    def crack_detect_method_1(self):
+    def crack_detect_method_1(self, bilateral_filter_sensitivity: int, file_name_suffix: str):
         """
         Algo from https://github.com/shomnathsomu/crack-detection-opencv
         1. read image
@@ -127,7 +127,7 @@ class CrackDetectHighlight(QRunnable):
         completed_img_path = os.path.join(
             self._database.get_base_filepath(self.user_uuid),
             "complete",
-            f"{self.image_session_id}.jpg",
+            f"{self.image_session_id}-{file_name_suffix}.jpg",
         )
 
         # Get absolute path of session_id, which is the image
@@ -148,7 +148,7 @@ class CrackDetectHighlight(QRunnable):
         bilateral = cv2.bilateralFilter(img_log, 10, 22, 22)  # original: 45, 22, 22
 
         # Run Canny Edge Detector
-        edges = cv2.Canny(bilateral, 20, 20)  # original:  20, 20
+        edges = cv2.Canny(bilateral, bilateral_filter_sensitivity, bilateral_filter_sensitivity)  # original:  20, 20, increasing these two numbers makes the algorithm less sensitive, (less highlights)
 
         # Morphological Closing Operator
         kernel = np.ones((5, 5), np.uint8)
@@ -226,7 +226,8 @@ class CrackDetectHighlight(QRunnable):
         else:
             print("No Crack")
 
-        self.crack_detect_method_1()
+        self.crack_detect_method_1(40, "precise")
+        self.crack_detect_method_1(20, "normal")
         self.cropped_image_save()
 
         # emit the finished signal to update image selector list
