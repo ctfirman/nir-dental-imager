@@ -89,6 +89,8 @@ class PreviewImageDialog(QDialog):
         self.user_uuid = user_uuid
         self.FILEPATH_OF_PAST_SCAN_IMAGE = filepath_of_past_img
 
+        self.setWindowTitle("Image Preview")
+
         # Buttons at the bottom of the form
         QBtn = QDialogButtonBox.Ok  # type: ignore
         self.buttonBox = QDialogButtonBox(QBtn)
