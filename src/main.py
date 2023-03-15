@@ -42,3 +42,4 @@ def pull_ml_data():
 
 if __name__ == "__main__":
     main()
+    # pull_ml_data()

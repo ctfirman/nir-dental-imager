@@ -53,6 +53,15 @@ class NMLModel:
         return crop
 
     @classmethod
+    def ml_img_crop_v2(cls, img: np.ndarray) -> np.ndarray:
+        y = 815  # Starting at top
+        x = 445  # Starting at left
+        h = 325  # Height
+        w = 325  # Width
+        crop = img[y : y + h, x : x + w]
+        return crop
+
+    @classmethod
     def get_data_for_ml(cls, user_uuid, session_id, db: nmlDB):
         img_filepath = os.path.join(
             nmlDB.get_base_filepath(user_uuid), "raw", f"{session_id}.jpg"
@@ -75,6 +84,24 @@ class NMLModel:
 
         # first_entry = np.frombuffer(db.get_first_ml_data().img, dtype=np.uint8)
         # print(first_entry.shape)
+
+    @classmethod
+    def get_data_for_ml_v2(cls, img_array, db: nmlDB):
+        croped_img_arr = cls.ml_img_crop_v2(img_array)
+        reduced_img = []
+
+        # print(f"in ml = {croped_img_arr}")
+        cv2.imshow("cropped img", croped_img_arr)
+        cv2.waitKey(0)
+
+        reduced_img = np.array(croped_img_arr)
+        reduced_img = reduced_img.tobytes()
+
+        db.insert_ml_data(reduced_img, 1)
+        db.get_ml_data_len()
+
+        first_entry = np.frombuffer(db.get_first_ml_data().img, dtype=np.uint8)  # type: ignore
+        print(first_entry.shape)
 
 
 class CrackDetectHighlightSignals(QObject):

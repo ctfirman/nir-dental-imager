@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
 
         # Initialize Video
         self.video_label = QLabel()
-        grey = QPixmap(750, 500)
+        grey = QPixmap(450, 800)
         grey.fill(QColor("darkGray"))
         self.video_label.setPixmap(grey)
 
@@ -469,6 +469,8 @@ class MainWindow(QMainWindow):
     # @pyqtSlot(np.ndarray)
     def update_image(self, cv_img: np.ndarray) -> None:
         qt_image = self._convert_cv_to_qt(cv_img)
+        # qt_image = qt_image.scaled(720, 1280)
+        qt_image = qt_image.scaled(450, 800)
         self.video_label.setPixmap(qt_image)
 
     # @pyqtSlot(bool)
@@ -480,17 +482,17 @@ class MainWindow(QMainWindow):
         """Handler after an image is captured"""
         # self.MOST_RECENT_IMAGE_SESSION
 
-        if self.USER_UUID:
-            image_crack_detection_worker = CrackDetectHighlight(
-                self.database, self.MOST_RECENT_IMAGE_SESSION, self.USER_UUID
-            )
-            image_crack_detection_worker.signals.finished.connect(
-                self.update_past_scans_list
-            )
-            self.session_id_to_thread_worker[
-                self.MOST_RECENT_IMAGE_SESSION
-            ] = image_crack_detection_worker
-            self.crack_detection_thread_pool.start(image_crack_detection_worker)
+        # if self.USER_UUID:
+        #     image_crack_detection_worker = CrackDetectHighlight(
+        #         self.database, self.MOST_RECENT_IMAGE_SESSION, self.USER_UUID
+        #     )
+        #     image_crack_detection_worker.signals.finished.connect(
+        #         self.update_past_scans_list
+        #     )
+        #     self.session_id_to_thread_worker[
+        #         self.MOST_RECENT_IMAGE_SESSION
+        #     ] = image_crack_detection_worker
+        #     self.crack_detection_thread_pool.start(image_crack_detection_worker)
 
         self.capture_image_button.setEnabled(capture_status)
 
