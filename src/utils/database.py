@@ -232,6 +232,14 @@ class nmlDB:
         print(ml_count)
         return ml_count
 
+    def change_ml_data_class_label(self, start, count, new_label):
+        ml_data = self.session.query(MlData).slice(start, count).all()
+        if not ml_data:
+            raise Exception("This image session was not found")
+        for mld in ml_data:
+            mld.classifier = new_label
+        self.session.commit()
+
 
 if __name__ == "__main__":
     user_db = nmlDB("nml.db")

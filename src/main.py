@@ -40,6 +40,11 @@ def pull_ml_data():
     print(f"classifiers example = {classifiers}")
 
 
+def update_ml_data():
+    db = nmlDB("nml.db")
+    db.change_ml_data_class_label(5, 15, 20)
+
+
 if __name__ == "__main__":
     main()
-    # pull_ml_data()
+    # update_ml_data()
