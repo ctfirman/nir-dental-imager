@@ -9,6 +9,7 @@ from time import time
 from PyQt5.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot, QThread
 
 from utils.database import nmlDB
+from utils.version import BETA_VERSION
 
 
 class NMLModel:
@@ -54,10 +55,15 @@ class NMLModel:
 
     @classmethod
     def ml_img_crop_v2(cls, img: np.ndarray) -> np.ndarray:
-        y = 815  # Starting at top
-        x = 445  # Starting at left
-        h = 325  # Height
-        w = 325  # Width
+        y = 245  # Starting at top
+        x = 187  # Starting at left
+        h = 158  # Height
+        w = 158  # Width
+        if BETA_VERSION:
+            y = 815  # Starting at top
+            x = 445  # Starting at left
+            h = 325  # Height
+            w = 325  # Width
         crop = img[y : y + h, x : x + w]
         return crop
 
@@ -100,8 +106,8 @@ class NMLModel:
         db.insert_ml_data(reduced_img, 1)
         db.get_ml_data_len()
 
-        first_entry = np.frombuffer(db.get_first_ml_data().img, dtype=np.uint8)  # type: ignore
-        print(first_entry.shape)
+        # last_entry = np.frombuffer(db.get_all_ml_data()[-1].img, dtype=np.uint8)  # type: ignore
+        # print(last_entry.shape)
 
 
 class CrackDetectHighlightSignals(QObject):
@@ -120,11 +126,12 @@ class CrackDetectHighlight(QRunnable):
 
     @classmethod
     def crop(cls, img):
-
         y = 257  # Starting at top
         x = 197  # Starting at left
         h = 130  # Height
         w = 146  # Width
+        if BETA_VERSION:
+            pass
 
         crop = img[y : y + h, x : x + w]
         # cv2.imshow('image', crop)
@@ -237,7 +244,11 @@ class CrackDetectHighlight(QRunnable):
         )
 
         # load model
-        self.model = NMLModel("nmlModelV2", self._database)
+        if BETA_VERSION:
+            # Use New Model
+            self.model = NMLModel("nmlModelV2", self._database)
+        else:
+            self.model = NMLModel("nmlModelV2", self._database)
         # predict the crack
         ml_result = self.model.predict(raw_img_path)
         # Update the database

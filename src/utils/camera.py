@@ -7,6 +7,7 @@ from typing import Optional
 from utils.exceptions import VideoNotOpened
 from utils.database import nmlDB
 from utils.crack_detect import NMLModel
+from utils.version import BETA_VERSION
 
 
 class VideoThread(QThread):
@@ -96,9 +97,10 @@ class VideoThread(QThread):
         # Emit to allow for recording
         self.camera_available_signal.emit(True)
 
-        # # To set the resolution
-        self.video.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
-        self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_hight)
+        if BETA_VERSION:
+            # To set the resolution
+            self.video.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
+            self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_hight)
 
         # Ensure the paths are set to save images
         self._DATABASE.check_set_filepath(self.USER_UUID)
@@ -116,10 +118,10 @@ class VideoThread(QThread):
                 break
 
             # Our operations on the frame come here
-            # Increase contrast
-            frame, alpha, beta = self.automatic_brightness_and_contrast(
-                frame, clip_hist_percent=5
-            )
+            # # Increase contrast
+            # frame, alpha, beta = self.automatic_brightness_and_contrast(
+            #     frame, clip_hist_percent=5
+            # )
 
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -140,7 +142,7 @@ class VideoThread(QThread):
                 else:
                     self.internal_ml_img_counter += 1
                     print(frame.shape)
-                    print(f"alpha = {alpha}, beta = {beta}")
+                    # print(f"alpha = {alpha}, beta = {beta}")
                     NMLModel.get_data_for_ml_v2(frame, self._DATABASE)
 
                 self.capture_complete_signal.emit(True)
