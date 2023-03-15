@@ -3,7 +3,7 @@ import sys
 import cv2
 import numpy as np
 
-from PyQt5.QtGui import QColor, QPixmap, QImage
+from PyQt5.QtGui import QColor, QPixmap, QImage, QIcon
 from PyQt5.QtCore import QSize, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtWidgets import (
     QApplication,
@@ -251,7 +251,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.database = database
-        self.USER_UUID = None
+        self.USER_UUID = ""
         self.SELECTED_DATE = None
         self.SELECTED_SESSION_ID = None
         self.USER_EMAIL = None
@@ -261,8 +261,9 @@ class MainWindow(QMainWindow):
         self.session_id_to_thread_worker = {}
 
         # Window Setup
-        self.setWindowTitle("nml.ai")
-        self.setFixedSize(QSize(1080, 720))
+        self.setWindowTitle("NML.ai")
+        self.setMinimumSize(QSize(1080, 720))
+        self.setWindowIcon(QIcon("assets/logo.png"))
 
         # Create all Widgets and layouts
         self.init_widgets()
@@ -293,7 +294,7 @@ class MainWindow(QMainWindow):
         self.switch_image_button.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(173, 216, 230)"
+            "background-color: rgb(56, 182, 255)"
         )
         self.switch_image_button.clicked.connect(self.swap_past_scan_image)
         self.switch_image_button.setEnabled(False)
@@ -308,7 +309,7 @@ class MainWindow(QMainWindow):
         self.add_new_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(173, 216, 230)"
+            "background-color: rgb(56, 182, 255)"
         )
 
         self.set_user_btn = QPushButton("Set User")
@@ -316,7 +317,7 @@ class MainWindow(QMainWindow):
         self.set_user_btn.setStyleSheet(
             "border-radius: 10px; "
             'font: 25 13pt "Fira Code"; '
-            "background-color: rgb(173, 216, 230)"
+            "background-color: rgb(56, 182, 255)"
         )
 
         self.title_label = QLabel("NML.ai", self)
@@ -325,7 +326,6 @@ class MainWindow(QMainWindow):
             " color: rgb(79, 79, 79);"
             "background-color: transparent;"
         )
-        self.title_label.setFixedSize(250, 80)
 
         # Initialize Video
         self.video_label = QLabel()
@@ -359,6 +359,11 @@ class MainWindow(QMainWindow):
         self.capture_image_button.setCheckable(False)
         self.capture_image_button.clicked.connect(self.capture_image_handler)
         self.capture_image_button.setEnabled(False)
+        self.capture_image_button.setStyleSheet(
+            "border-radius: 10px; "
+            'font: 25 13pt "Fira Code"; '
+            "background-color: rgb(56, 182, 255)"
+        )
 
         # Capture image textbox for image name
         self.image_name_text = QLabel("Enter the Image Name:")
@@ -399,7 +404,9 @@ class MainWindow(QMainWindow):
         image_name_layout.addWidget(self.image_name_text)
         image_name_layout.addWidget(self.image_name_box)
         new_scan_layout.addLayout(image_name_layout)
+        self.capture_image_button.setFixedWidth(460)
         new_scan_layout.addWidget(self.capture_image_button)
+        new_scan_layout.setAlignment(self.capture_image_button, Qt.AlignHCenter)  # type: ignore
 
         new_scan_container = QWidget()
         new_scan_container.setLayout(new_scan_layout)
@@ -444,7 +451,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
         self.setStyleSheet(
-            "background-color: qlineargradient(spread:pad, x1:0.056, y1:0.119318, x2:1, y2:1, stop:0 rgba(255, 229, 222, 255), stop:1 rgba(229, 235, 255, 255));"
+            "background-color: #d1e5e6;"
+            # "background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.2, y2:0.2, stop:0 rgba(56, 182, 255,1), stop:1 rgba(255,244,228,1));"
         )
 
     def user_selector_index_changed(self, i):
@@ -496,13 +504,25 @@ class MainWindow(QMainWindow):
         print(f"past_scan_date_selector index = {session_info}")
 
         # Gets the actual session id from the name
-        session_id = session_info.split("_")[0]
+        session_id, crack_status, img_name = session_info.split("_")
         completed_img_path = os.path.join(
             self.database.get_base_filepath(self.USER_UUID),  # type: ignore
             "complete",  # type: ignore
             f"{session_id}-normal.jpg",  # type: ignore
         )
 
+        if crack_status == "CRACK":
+            completed_img_path = os.path.join(
+                self.database.get_base_filepath(self.USER_UUID),  # type: ignore
+                "complete",  # type: ignore
+                f"{session_id}.jpg",  # type: ignore
+            )
+        else:
+            completed_img_path = os.path.join(
+                self.database.get_base_filepath(self.USER_UUID),  # type: ignore
+                "complete",  # type: ignore
+                f"{session_id}-cropped.jpg",  # type: ignore
+            )
         # Sets the filepath of the image, then displays it
         self.FILEPATH_OF_PAST_SCAN_IMAGE = completed_img_path
         highlighted_output_pixmap = QPixmap(completed_img_path)
@@ -678,12 +698,20 @@ class MainWindow(QMainWindow):
         )
 
         date = str(image_session.date.date())
+        # If no dates in date list, add date
+        current_list_widget_dates = [
+            self.past_scan_date_selector.item(x).text()
+            for x in range(self.past_scan_date_selector.count())
+        ]
+        if not date in current_list_widget_dates:
+            self.past_scan_date_selector.addItem(date)
+
         if self.image_session_dict.get(date, None) is None:
             self.image_session_dict[date] = []
         self.image_session_dict[date].append(image_session)
 
         if self.SELECTED_DATE == date:
-            self.past_scan_image_session_selector.addItem(final_str)
+            self.past_scan_image_session_selector.addItem(final_str)  # type: ignore
 
         print("Crack detection is done")
         show_current_scan_result = PreviewImageDialog(

@@ -33,10 +33,10 @@ class NMLModel:
         reduced_img = np.array(reduced_img).flatten()
         reduced_img = np.array([reduced_img])
 
-        prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
+        # prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
+        prediction = self.crack_detect_model(reduced_img)[0]  # type: ignore
 
         print(prediction)
-        print(np.argmax(prediction))
         if np.argmax(prediction):
             return 1
         else:
@@ -84,7 +84,8 @@ class CrackDetectHighlightSignals(QObject):
 class CrackDetectHighlight(QRunnable):
     def __init__(self, database: nmlDB, img_session_id: int, user_uuid: str):
         super().__init__()
-        self._database = database
+        # Need to do this as db session will fail if called multiple times
+        self._database = nmlDB("nml.db")
         self.image_session_id = img_session_id
         self.user_uuid = user_uuid
         self.signals = CrackDetectHighlightSignals()
@@ -98,7 +99,7 @@ class CrackDetectHighlight(QRunnable):
         h = 130  # Height
         w = 146  # Width
 
-        crop = img[y:y + h, x:x + w]
+        crop = img[y : y + h, x : x + w]
         # cv2.imshow('image', crop)
         # cv2.waitKey(0)
 
@@ -173,7 +174,6 @@ class CrackDetectHighlight(QRunnable):
 
         print("Finished crack detection!")
 
-
     def cropped_image_save(self):
 
         raw_img_path = os.path.join(
@@ -193,8 +193,6 @@ class CrackDetectHighlight(QRunnable):
         # Crop the image to hone in on the tooth
         cropped_img = self.crop(src)
         cv2.imwrite(completed_img_path, cropped_img)
-
-
 
     @pyqtSlot()
     def run(self):
@@ -240,9 +238,5 @@ class CrackDetectHighlight(QRunnable):
         self.continueThread = False
 
 
-#if __name__ == "__main__":
-    # crack_detect_method_1(1677963412788, "7e246217-c7b8-4b93-84ca-5c8319214db1", True)
-
-
-
-
+# if __name__ == "__main__":
+# crack_detect_method_1(1677963412788, "7e246217-c7b8-4b93-84ca-5c8319214db1", True)

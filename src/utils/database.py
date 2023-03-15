@@ -12,7 +12,7 @@ from sqlalchemy import (
     DateTime,
     LargeBinary,
 )
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship, scoped_session
 
 from utils.exceptions import UserAlreadyCreated, UserNotFound, ImageSessionNotFound
 
@@ -94,10 +94,17 @@ class MlData(Base):
 # ------------------- Wrapper to use DB -------------------
 class nmlDB:
     def __init__(self, db_name) -> None:
-        engine = create_engine(f"sqlite:///{db_name}", echo=False)
-        Base.metadata.create_all(bind=engine)
-        Session = sessionmaker(bind=engine)
-        self.session = Session()
+        self.engine = create_engine(f"sqlite:///{db_name}", echo=False)
+        Base.metadata.create_all(bind=self.engine)
+        self.session_factory = sessionmaker(bind=self.engine)
+        self.Session = scoped_session(self.session_factory)
+        self.session = self.Session()
+
+    # def init_threads_session(self):
+    #     self.session_factory = sessionmaker(bind=self.engine)
+    #     self.Session = scoped_session(self.session_factory)
+    #     self.session = self.Session()
+    #     print(self.session)
 
     def _get_users_all(self) -> List[User]:
         results = self.session.query(User).all()
@@ -149,7 +156,7 @@ class nmlDB:
 
         return session_id
 
-    def get_all_img_sessions_for_uuid(self, uuid: str) -> List[ImageSession]:
+    def get_all_img_sessions_for_uuid(self, uuid) -> List[ImageSession]:
         results = (
             self.session.query(ImageSession)
             .filter(User.user_uuid == ImageSession.user_uuid)
@@ -158,7 +165,9 @@ class nmlDB:
         )
         return results
 
-    def get_img_session_for_uuid(self, uuid: str, desired_image_session: int) -> ImageSession:
+    def get_img_session_for_uuid(
+        self, uuid, desired_image_session: int
+    ) -> ImageSession:
         results = (
             self.session.query(ImageSession)
             .filter(User.user_uuid == ImageSession.user_uuid)
