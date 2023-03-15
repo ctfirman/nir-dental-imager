@@ -6,8 +6,9 @@ from typing import Optional
 
 from utils.exceptions import VideoNotOpened
 from utils.database import nmlDB
-from utils.crack_detect import NMLModel
 from utils.version import BETA_VERSION
+
+# from utils.crack_detect import NMLModel
 
 
 class VideoThread(QThread):
@@ -132,18 +133,18 @@ class VideoThread(QThread):
             # Capture the current image to file
             if self._capture_flag:
                 # TODO UNCOMMENT FOR NORMAL FUNCTIONALITY
-                # self._capture_flag = False
-                # self._save_image(frame)
+                self._capture_flag = False
+                self._save_image(frame)
 
-                # TODO FOR ML DATA CAPTURE REMOVE AFTER
-                if self.internal_ml_img_counter >= 10:
-                    self._capture_flag = False
-                    self.internal_ml_img_counter = 0
-                else:
-                    self.internal_ml_img_counter += 1
-                    print(frame.shape)
-                    # print(f"alpha = {alpha}, beta = {beta}")
-                    NMLModel.get_data_for_ml_v2(frame, self._DATABASE)
+                # # TODO FOR ML DATA CAPTURE REMOVE AFTER
+                # if self.internal_ml_img_counter >= 10:
+                #     self._capture_flag = False
+                #     self.internal_ml_img_counter = 0
+                # else:
+                #     self.internal_ml_img_counter += 1
+                #     print(frame.shape)
+                #     # print(f"alpha = {alpha}, beta = {beta}")
+                #     NMLModel.get_data_for_ml_v2(frame, self._DATABASE)
 
                 self.capture_complete_signal.emit(True)
 
