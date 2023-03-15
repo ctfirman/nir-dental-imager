@@ -21,7 +21,7 @@ class NMLModel:
             raise Exception("Model not found")
         # print(self.crack_detect_model.summary())
 
-    def predict(self, img_path: str) -> Union[Literal[0], Literal[1]]:
+    def predict(self, img_path: str, resize=False) -> Union[Literal[0], Literal[1]]:
         cropped_img = self.ml_img_crop(img_path)
 
         # flatten and reduce img to pass into model
@@ -33,6 +33,21 @@ class NMLModel:
             reduced_img.append(reduced)
         reduced_img = np.array(reduced_img).flatten()
         reduced_img = np.array([reduced_img])
+
+        if resize:
+            print("Original Dimensions : ", reduced_img.shape)
+            scale_percent = 60  # percent of original size
+            width = int(reduced_img.shape[1] * scale_percent / 100)
+            height = int(reduced_img.shape[0] * scale_percent / 100)
+            dim = (width, height)
+
+            # resize image
+            resized = cv2.resize(reduced_img, dim, interpolation=cv2.INTER_AREA)
+
+            print("Resized Dimensions : ", resized.shape)
+
+            cv2.imshow("Resized image", resized)
+            cv2.waitKey(0)
 
         # prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
         prediction = self.crack_detect_model(reduced_img)[0]  # type: ignore
@@ -147,7 +162,9 @@ class CrackDetectHighlight(QRunnable):
 
         return crop
 
-    def crack_detect_method_1(self, bilateral_filter_sensitivity: int, file_name_suffix: str):
+    def crack_detect_method_1(
+        self, bilateral_filter_sensitivity: int, file_name_suffix: str
+    ):
         """
         Algo from https://github.com/shomnathsomu/crack-detection-opencv
         1. read image
@@ -191,7 +208,9 @@ class CrackDetectHighlight(QRunnable):
         bilateral = cv2.bilateralFilter(img_log, 10, 22, 22)  # original: 45, 22, 22
 
         # Run Canny Edge Detector
-        edges = cv2.Canny(bilateral, bilateral_filter_sensitivity, bilateral_filter_sensitivity)  # original:  20, 20, increasing these two numbers makes the algorithm less sensitive, (less highlights)
+        edges = cv2.Canny(
+            bilateral, bilateral_filter_sensitivity, bilateral_filter_sensitivity
+        )  # original:  20, 20, increasing these two numbers makes the algorithm less sensitive, (less highlights)
 
         # Morphological Closing Operator
         kernel = np.ones((5, 5), np.uint8)
@@ -251,14 +270,17 @@ class CrackDetectHighlight(QRunnable):
             f"{self.image_session_id}.jpg",
         )
 
+        self.model = NMLModel("nmlModelV2", self._database)
         # load model
         if BETA_VERSION:
-            # Use New Model
-            self.model = NMLModel("nmlModelV2", self._database)
+            # Resize img to use in v2 prediction
+            # v3 model uses 325x325 while v2 model uses 158x158
+            # Use old model and new model to predict crack
+            ml_result = self.model.predict(raw_img_path, resize=True)
+            # TODO INSERT NEW MODEL
+
         else:
-            self.model = NMLModel("nmlModelV2", self._database)
-        # predict the crack
-        ml_result = self.model.predict(raw_img_path)
+            ml_result = self.model.predict(raw_img_path)
         # Update the database
         self._database.update_img_session_crack_detection(
             self.image_session_id, ml_result
