@@ -26,18 +26,15 @@ class NMLModel:
 
         if resize:
             print("Original Dimensions : ", cropped_img.shape)
-            scale_percent = 60  # percent of original size
-            width = int(cropped_img.shape[1] * scale_percent / 100)
-            height = int(cropped_img.shape[0] * scale_percent / 100)
-            dim = (width, height)
+            dim = (158, 158)
 
             # resize image
-            resized = cv2.resize(cropped_img, dim, interpolation=cv2.INTER_AREA)
+            cropped_img = cv2.resize(cropped_img, dim, interpolation=cv2.INTER_AREA)
 
-            print("Resized Dimensions : ", resized.shape)
+            print("Resized Dimensions : ", cropped_img.shape)
 
-            cv2.imshow("Resized image", resized)
-            cv2.waitKey(0)
+            # cv2.imshow("Resized image", resized)
+            # cv2.waitKey(0)
 
         # flatten and reduce img to pass into model
         reduced_img = []
@@ -270,30 +267,34 @@ class CrackDetectHighlight(QRunnable):
             f"{self.image_session_id}.jpg",
         )
 
+        model_predictions = []
         # load model
         if BETA_VERSION:
             # Resize img to use in v2 prediction
             # v3 model uses 325x325 while v2 model uses 158x158
             # Use old model and new model to predict crack
-            # model_v2 = NMLModel("nmlModelV2", self._database)
-            # ml_result = model_v2.predict(raw_img_path, resize=True)
-            # print(f"v2 model predict = {ml_result}")
+            model_v2 = NMLModel("nmlModelV2", self._database)
+            ml_result = model_v2.predict(raw_img_path, resize=True)
+            print(f"v2 model predict = {ml_result}")
+            model_predictions.append(ml_result)
 
             model_v3 = NMLModel("nmlModelV3", self._database)
             ml_result = model_v3.predict(raw_img_path)
             print(f"v3 model predict = {ml_result}")
+            model_predictions.append(ml_result)
 
         else:
             model = NMLModel("nmlModelV2", self._database)
             ml_result = model.predict(raw_img_path)
+            model_predictions.append(ml_result)
+
         # Update the database
         self._database.update_img_session_crack_detection(
             self.image_session_id, ml_result
         )
 
-        if ml_result:
+        if any(model_predictions):
             print("Crack Detected")
-
         else:
             print("No Crack")
 
