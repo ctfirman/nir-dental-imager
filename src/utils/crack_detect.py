@@ -44,6 +44,10 @@ class NMLModel:
                 reduced.append(col[0])
             reduced_img.append(reduced)
         reduced_img = np.array(reduced_img).flatten()
+
+        # Normalize data as this is what the model was trained with
+        reduced_img = reduced_img.astype(float) / 255
+
         reduced_img = np.array([reduced_img])
 
         # prediction = self.crack_detect_model.predict(reduced_img)[0]  # type: ignore
