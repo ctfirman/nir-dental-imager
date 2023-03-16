@@ -80,15 +80,13 @@ class CreateNewUserDialog(QDialog):
 
 
 class PreviewImageDialog(QDialog):
-    def __init__(
-        self, user_uuid, image_session, filepath_of_past_img, database, parent=None
-    ):
+    def __init__(self, user_uuid, image_session, database, parent=None):
         super().__init__(parent=parent)
         """Create a new dialog as a new pop up window for when the user clicks "capture". This dialog box would show
         them the results of the current image"""
         self.database = database
         self.user_uuid = user_uuid
-        self.FILEPATH_OF_PAST_SCAN_IMAGE = filepath_of_past_img
+        self.FILEPATH_OF_PAST_SCAN_IMAGE = ""
 
         self.setWindowTitle("Image Preview")
 
@@ -388,7 +386,6 @@ class MainWindow(QMainWindow):
         self.crack_detection_status.setContentsMargins(0, 15, 0, 15)
         self.crack_detection_status.setFixedWidth(400)
         self.crack_detection_status.setAlignment(Qt.AlignCenter)  # type: ignore
-
 
     def init_layouts(self):
         # Set the Layout
@@ -768,7 +765,6 @@ class MainWindow(QMainWindow):
         show_current_scan_result = PreviewImageDialog(
             self.USER_UUID,
             image_session,
-            self.FILEPATH_OF_PAST_SCAN_IMAGE,
             self.database,
             parent=self,
         )
