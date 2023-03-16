@@ -1,6 +1,13 @@
-# nir-dental-imager
+![NML.ai logo](assets/nml.ai.png)
 
-NE Capstone Project
+# NML.ai
+
+## 2023 Nanotechnology Engineering Capstone Project
+
+### University of Waterloo
+
+![new scan](assets/new-scan.png)
+![new scan](assets/highlighted-crack.png)
 
 How to run from root:
 
