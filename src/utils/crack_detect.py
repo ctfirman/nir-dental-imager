@@ -154,7 +154,7 @@ class CrackDetectHighlight(QRunnable):
         if BETA_VERSION:
             y = 815  # Starting at top
             x = 445  # Starting at left
-            h = 325  # Height
+            h = 300  # Height
             w = 325  # Width
 
         crop = img[y : y + h, x : x + w]
@@ -197,7 +197,7 @@ class CrackDetectHighlight(QRunnable):
         # Crop the image to hone in on the tooth
         cropped_img = self.crop(src)
 
-        blur = cv2.GaussianBlur(cropped_img, (5, 5), 0)
+        blur = cv2.GaussianBlur(cropped_img, (11, 11), 0)
 
         # Apply logarithmic transform
         img_log = (np.log(blur + 1) / (np.log(1 + np.max(blur)))) * 255
@@ -206,7 +206,7 @@ class CrackDetectHighlight(QRunnable):
         img_log = np.array(img_log, dtype=np.uint8)
 
         # Image smoothing: bilateral filter
-        bilateral = cv2.bilateralFilter(img_log, 10, 22, 22)  # original: 45, 22, 22
+        bilateral = cv2.bilateralFilter(img_log, 50, 22, 22)  # original: 45, 22, 22
 
         # Run Canny Edge Detector
         edges = cv2.Canny(
@@ -302,8 +302,8 @@ class CrackDetectHighlight(QRunnable):
         else:
             print("No Crack")
 
-        self.crack_detect_method_1(40, "precise")
-        self.crack_detect_method_1(20, "normal")
+        self.crack_detect_method_1(10, "precise") # 40 original
+        self.crack_detect_method_1(6, "normal") # 20 original
         self.cropped_image_save()
 
         # emit the finished signal to update image selector list
